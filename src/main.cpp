@@ -16,15 +16,23 @@ enum {
     a4, b4, c4, d4, e4, f4, g4, h4,
     a3, b3, c3, d3, e3, f3, g3, h3,
     a2, b2, c2, d2, e2, f2, g2, h2,
-    a1, b1, c1, d1, e1, f1, g1, h1, no_sq
+    a1, b1, c1, d1, e1, f1, g1, h1,
 };
 
+// non-zero binary string if bit set otherwise zero
 inline bool get_bit(U64 bitboard, int square) {
     return bitboard & (1ULL << square);
 }
 
+
+// bitwise OR will set bit no matter if previously set or unset
 inline void set_bit(U64& bitboard, int square) { 
     bitboard |= (1ULL << square); 
+}
+
+inline void unset_bit(U64& bitboard, int square){
+    bitboard &= ~(1ULL << a1);
+
 }
 
 ///// Bit MANIPULATIONS
@@ -63,6 +71,9 @@ int main(){
 
     set_bit(bitboard,a1);
     set_bit(bitboard,g2);
+
+    unset_bit(bitboard,a1);
+
     print_bitboard(bitboard);
 
     return 0;
