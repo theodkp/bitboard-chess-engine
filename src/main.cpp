@@ -41,6 +41,7 @@ inline void unset_bit(U64& bitboard, int square){
 ///// Bit MANIPULATIONS
 
 
+/// Print bitboard visulisation
 void print_bitboard(U64 bitboard){
 
 std::cout << "\n";
@@ -66,7 +67,11 @@ std::cout << "     Bitboard: " << bitboard;
 }
 /// ATTACKS
 
+
+/// lookup table will return binary rep of our possible pawn attacks for certain square
 U64 pawn_attacks[2][64];
+
+/// returns a U64 bitboard with all bits set except given file/s
 
 const U64 not_a_file = 18374403900871474942ULL;
 
@@ -77,7 +82,7 @@ const U64 not_hg_file = 4557430888798830399ULL;
 const U64 not_ab_file = 18229723555195321596ULL;
  
 
-U64 mask_pawn_attacks(int square, int side){
+U64 mask_pawn_attacks(int side, int square){
 
     // result board
     U64 attacks = 0ULL;
@@ -91,10 +96,15 @@ U64 mask_pawn_attacks(int square, int side){
 
     if (!side){
 
-        attacks |= (bitboard >> 7);
+        /// pawn attacks white
+       if (bitboard & not_h_file) attacks |= bitboard >>7;
+       if (bitboard & not_a_file) attacks |= bitboard >>9;
 
     }
     else{
+        /// pawn attacks black
+        if (bitboard & not_a_file) attacks |= bitboard <<7;
+        if (bitboard & not_h_file) attacks |= bitboard <<9;
 
     }
 
@@ -105,6 +115,15 @@ U64 mask_pawn_attacks(int square, int side){
 
 }
 
+void init_leaper_attacks(){
+
+    for (int square = 0; square <64; square++){
+        pawn_attacks[white][square] = mask_pawn_attacks(white,square);
+        pawn_attacks[black][square] = mask_pawn_attacks(black,square);
+    }
+
+}
+
  
 
 
@@ -112,24 +131,17 @@ U64 mask_pawn_attacks(int square, int side){
 
 int main(){
 
+    init_leaper_attacks();
 
 
-    // print_bitboard(mask_pawn_attacks(e4,white));
+
+//    print_bitboard(pawn_attacks[white][b2]);
 
 
-    for (int rank = 0; rank < 8; rank++){
-        for (int file = 0; file < 8; file++){
-            int square = rank * 8 + file;
-            
-            // if(file >1){
-            //     set_bit(not_ab_file,square);
-            // }
-            
-        }
-    }
+   std::cout << pawn_attacks[white][b2];
+
+
     
-
-    print_bitboard(not_ab_file);
 
     return 0;
 }
