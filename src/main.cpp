@@ -7,6 +7,7 @@
 using U64 = unsigned long long;
 
 
+
 // board pos map
 enum {
     a8, b8, c8, d8, e8, f8, g8, h8,
@@ -18,6 +19,8 @@ enum {
     a2, b2, c2, d2, e2, f2, g2, h2,
     a1, b1, c1, d1, e1, f1, g1, h1,
 };
+
+enum {white,black};
 
 // non-zero binary string if bit set otherwise zero
 inline bool get_bit(U64 bitboard, int square) {
@@ -60,21 +63,73 @@ for (int rank = 0; rank< 8; rank++){
 std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
 std::cout << "     Bitboard: " << bitboard;
 
- 
 }
+/// ATTACKS
+
+U64 pawn_attacks[2][64];
+
+const U64 not_a_file = 18374403900871474942ULL;
+
+const U64 not_h_file = 9187201950435737471ULL;
+
+const U64 not_hg_file = 4557430888798830399ULL;
+
+const U64 not_ab_file = 18229723555195321596ULL;
+ 
+
+U64 mask_pawn_attacks(int square, int side){
+
+    // result board
+    U64 attacks = 0ULL;
+
+    // pawn bitboard
+    U64 bitboard = 0ULL;
+
+
+    set_bit(bitboard,square);
+
+
+    if (!side){
+
+        attacks |= (bitboard >> 7);
+
+    }
+    else{
+
+    }
+
+
+    return attacks;
+
+    
+
+}
+
+ 
+
 
 //// MAIN 
 
 int main(){
 
-    U64 bitboard =  0ULL;
 
-    set_bit(bitboard,a1);
-    set_bit(bitboard,g2);
 
-    unset_bit(bitboard,a1);
+    // print_bitboard(mask_pawn_attacks(e4,white));
 
-    print_bitboard(bitboard);
+
+    for (int rank = 0; rank < 8; rank++){
+        for (int file = 0; file < 8; file++){
+            int square = rank * 8 + file;
+            
+            // if(file >1){
+            //     set_bit(not_ab_file,square);
+            // }
+            
+        }
+    }
+    
+
+    print_bitboard(not_ab_file);
 
     return 0;
 }
