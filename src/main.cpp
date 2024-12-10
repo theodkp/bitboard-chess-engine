@@ -46,7 +46,7 @@ inline void set_bit(U64& bitboard, int square) {
 }
 
 inline void unset_bit(U64& bitboard, int square){
-    bitboard &= ~(1ULL << a1);
+    bitboard &= ~(1ULL << square);
 
 }
 
@@ -321,26 +321,40 @@ void init_leaper_attacks(){
 
 }
 
+U64 set_occupancy(int index, int bits_in_mask , U64 attack_mask){
+
+    U64 occupancy = 0ULL;
+
+    for (int count = 0; count < bits_in_mask; count++){
+        
+        int square = get_lsf_bit_index(attack_mask);
+
+        unset_bit(attack_mask,square);
+
+
+        if (index & (1 << count))
+            occupancy |= (1ULL<< square);
+        
+    }
+
+    return occupancy;
+
+}
+
  //// MAIN 
 
 int main(){
 
     init_leaper_attacks();
 
-//    print_bitboard(pawn_attacks[white][b2]);
+    U64 attack_mask = mask_rook_attacks(a1);
 
-    U64 bitboard = 0ULL;
 
-    U64 block = 0ULL;
+    U64 occupancy = set_occupancy(4095,count_bits(attack_mask),attack_mask);
 
-    set_bit(block,b6);
-    set_bit(block,b2);
-    set_bit(block,e4);
+    print_bitboard(occupancy);
 
-    
 
-    std::cout << square_to_coordinates[get_lsf_bit_index(block)];
-    
    
     return 0;
 }
