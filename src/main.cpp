@@ -191,6 +191,38 @@ U64 mask_bishop_attacks(int square){
 
 }
 
+/// Bishop attacks
+U64 gen_bishop_attacks(int square, U64 block){
+
+    U64 attacks = 0ULL;
+
+    int r,f;
+
+    int tr = square / 8;
+    int tf = square % 8;
+
+    for (r = tr+ 1 , f = tf+1; r <= 7 && f <= 7; r++,f++){
+        attacks|= (1ULL << (r * 8 + f));
+        // If diag is being blocked by piece
+        if ((1ULL << ( r*8 + f )) & block) break;
+    } 
+    for (r = tr - 1 , f = tf+1; r >=0 && f <= 7; r--,f++) {
+        attacks|= (1ULL << (r * 8 + f));
+        if ((1ULL << ( r*8 + f )) & block) break;
+    } 
+    for (r = tr+ 1 , f = tf-1; r <= 7 && f >= 0; r++,f--){
+        attacks|= (1ULL << (r * 8 + f));
+        if ((1ULL << ( r*8 + f )) & block) break;
+    } 
+    for (r = tr- 1 , f = tf-1; r >= 0 && f >= 0; r--,f--) {
+        attacks|= (1ULL << (r * 8 + f));
+        if ((1ULL << ( r*8 + f )) & block) break;
+    }
+
+    return attacks;
+
+}
+
 U64 mask_rook_attacks(int square){
 
     U64 attacks = 0ULL;
@@ -213,6 +245,41 @@ U64 mask_rook_attacks(int square){
 
 }
 
+U64 gen_rook_attacks(int square,U64 block){
+
+    U64 attacks = 0ULL;
+
+    int r,f;
+
+    int tr = square / 8;
+    int tf = square % 8;
+
+    // down
+    for ( r = tr +1; r <= 6; r++){
+        attacks|= (1ULL<< (r*8+tf));
+        if ((1ULL<< (r*8+tf)) & block) break;
+    } 
+    // up 
+    for ( r = tr -1; r >=1; r--){
+        attacks|= (1ULL<< (r*8+tf));
+        if ((1ULL<< (r*8+tf)) & block) break;
+    } 
+    // right
+    for ( f = tf + 1; f <= 6; f++){
+        attacks|= (1ULL<< (tr*8+f));
+        if ((1ULL<< (tr*8+f)) & block) break;
+
+    } 
+    // left
+    for ( f = tf - 1; f >= 1; f--){
+        attacks|= (1ULL<< (tr*8+f));
+        if ((1ULL<< (tr*8+f)) & block) break;
+    }
+
+    return attacks;
+
+}
+
 void init_leaper_attacks(){
 
     for (int square = 0; square <64; square++){
@@ -225,28 +292,25 @@ void init_leaper_attacks(){
 
 }
 
- 
-
-
-//// MAIN 
+ //// MAIN 
 
 int main(){
 
     init_leaper_attacks();
 
-
-
 //    print_bitboard(pawn_attacks[white][b2]);
 
-    for (int square = 0; square < 64; square++){
-        print_bitboard(mask_rook_attacks(square));
-    }
+    U64 bitboard = 0ULL;
 
-   
+    U64 block = 0ULL;
 
-   
+    set_bit(block,b6);
+    set_bit(block,b2);
+    set_bit(block,e4);
 
+    print_bitboard(block);
     
-
+    print_bitboard(gen_rook_attacks(d4,block));
+   
     return 0;
 }
