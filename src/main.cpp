@@ -41,6 +41,20 @@ inline void unset_bit(U64& bitboard, int square){
 ///// Bit MANIPULATIONS
 
 
+// Count bits
+static inline int count_bits(U64 bitboard){
+
+    // int count = 0;
+
+    // while(bitboard){
+    //     bitboard&= bitboard-1;
+    //     count++;
+    // };
+
+    // return count;
+    return __builtin_popcountll(bitboard);
+}
+
 /// Print bitboard visulisation
 void print_bitboard(U64 bitboard){
 
@@ -308,9 +322,10 @@ int main(){
     set_bit(block,b2);
     set_bit(block,e4);
 
-    print_bitboard(block);
     
-    print_bitboard(gen_rook_attacks(d4,block));
+
+    std::cout << count_bits(block);
+    
    
     return 0;
 }
