@@ -71,6 +71,9 @@ std::cout << "     Bitboard: " << bitboard;
 /// lookup table will return binary rep of our possible pawn attacks for certain square
 U64 pawn_attacks[2][64];
 
+/// lookup table will return binary rep of our possible knight attacks for certain square
+U64 knight_attacks[64];
+
 /// returns a U64 bitboard with all bits set except given file/s
 
 const U64 not_a_file = 18374403900871474942ULL;
@@ -115,6 +118,30 @@ U64 mask_pawn_attacks(int side, int square){
 
 }
 
+
+U64 mask_knight_attacks(int square){
+    U64 attacks = 0ULL;
+
+    U64 bitboard = 0ULL;
+
+    set_bit(bitboard,square);
+
+
+    if (bitboard & not_a_file) attacks |= bitboard >>17;
+    if (bitboard & not_h_file) attacks |= bitboard >>15;
+    if (bitboard & not_ab_file) attacks |= bitboard >>10;
+    if (bitboard & not_hg_file) attacks |= bitboard >>6;
+
+
+    if (bitboard & not_h_file) attacks |= bitboard <<17;
+    if (bitboard & not_a_file) attacks |= bitboard <<15;
+    if (bitboard & not_hg_file) attacks |= bitboard <<10;
+    if (bitboard & not_ab_file) attacks |= bitboard <<6;
+
+
+    return attacks;
+}
+
 void init_leaper_attacks(){
 
     for (int square = 0; square <64; square++){
@@ -137,9 +164,10 @@ int main(){
 
 //    print_bitboard(pawn_attacks[white][b2]);
 
+    print_bitboard(mask_knight_attacks(h4));
 
-   std::cout << pawn_attacks[white][b2];
 
+   
 
     
 
