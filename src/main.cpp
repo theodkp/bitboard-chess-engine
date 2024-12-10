@@ -191,6 +191,28 @@ U64 mask_bishop_attacks(int square){
 
 }
 
+U64 mask_rook_attacks(int square){
+
+    U64 attacks = 0ULL;
+
+    int r,f;
+
+    int tr = square / 8;
+    int tf = square % 8;
+
+    // down
+    for ( r = tr +1; r <= 6; r++) attacks|= (1ULL<< (r*8+tf));
+    // up 
+    for ( r = tr -1; r >=1; r--) attacks|= (1ULL<< (r*8+tf));
+    // right
+    for ( f = tf + 1; f <= 6; f++) attacks|= (1ULL<< (tr*8+f));
+    // left
+    for ( f = tf - 1; f >= 1; f--) attacks|= (1ULL<< (tr*8+f));
+
+    return attacks;
+
+}
+
 void init_leaper_attacks(){
 
     for (int square = 0; square <64; square++){
@@ -217,7 +239,7 @@ int main(){
 //    print_bitboard(pawn_attacks[white][b2]);
 
     for (int square = 0; square < 64; square++){
-        print_bitboard(mask_bishop_attacks(square));
+        print_bitboard(mask_rook_attacks(square));
     }
 
    
