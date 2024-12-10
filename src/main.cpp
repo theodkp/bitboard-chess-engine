@@ -71,8 +71,11 @@ std::cout << "     Bitboard: " << bitboard;
 /// lookup table will return binary rep of our possible pawn attacks for certain square
 U64 pawn_attacks[2][64];
 
-/// lookup table will return binary rep of our possible knight attacks for certain square
+/// knight attack table
 U64 knight_attacks[64];
+
+/// king attack table
+U64 king_attacks[64];
 
 /// returns a U64 bitboard with all bits set except given file/s
 
@@ -85,6 +88,7 @@ const U64 not_hg_file = 4557430888798830399ULL;
 const U64 not_ab_file = 18229723555195321596ULL;
  
 
+/// PAWN ATTACKS
 U64 mask_pawn_attacks(int side, int square){
 
     // result board
@@ -118,7 +122,7 @@ U64 mask_pawn_attacks(int side, int square){
 
 }
 
-
+/// KNIGHT ATTACKS
 U64 mask_knight_attacks(int square){
     U64 attacks = 0ULL;
 
@@ -142,6 +146,30 @@ U64 mask_knight_attacks(int square){
     return attacks;
 }
 
+/// KING ATTACKS
+
+U64 mask_king_attacks(int square){
+    U64 attacks = 0ULL;
+
+    U64 bitboard = 0ULL;
+
+    set_bit(bitboard,square);
+
+
+    if (bitboard >> 8) attacks |= (bitboard >>8);
+    if (bitboard & not_a_file) attacks |= bitboard >>9;
+    if (bitboard & not_h_file) attacks |= bitboard >>7;
+    if (bitboard & not_a_file) attacks |= bitboard >>1;
+
+    if (bitboard << 8) attacks |= (bitboard <<8);
+    if (bitboard & not_h_file) attacks |= bitboard <<9;
+    if (bitboard & not_a_file) attacks |= bitboard <<7;
+    if (bitboard & not_h_file) attacks |= bitboard <<1;
+
+
+    return attacks;
+}
+
 void init_leaper_attacks(){
 
     for (int square = 0; square <64; square++){
@@ -149,6 +177,7 @@ void init_leaper_attacks(){
         pawn_attacks[black][square] = mask_pawn_attacks(black,square);
 
         knight_attacks[square] = mask_knight_attacks(square);
+        king_attacks[square] = mask_king_attacks(square);
     }
 
 }
@@ -167,9 +196,10 @@ int main(){
 //    print_bitboard(pawn_attacks[white][b2]);
 
     for (int square = 0; square < 64; square++){
-        print_bitboard(knight_attacks[square]);
+        print_bitboard(king_attacks[square]);
     }
 
+    // print_bitboard(mask_king_attacks(d4));
 
    
 
