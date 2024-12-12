@@ -115,6 +115,30 @@ const U64 not_h_file = 9187201950435737471ULL;
 const U64 not_hg_file = 4557430888798830399ULL;
 
 const U64 not_ab_file = 18229723555195321596ULL;
+
+
+const int bishop_relevant_bits[64] = {
+6,5,5,5,5,5,5,6,
+5,5,5,5,5,5,5,5,
+5,5,7,7,7,7,5,5,
+5,5,7,9,9,7,5,5,
+5,5,7,9,9,7,5,5,
+5,5,7,7,7,7,5,5,
+5,5,5,5,5,5,5,5,
+6,5,5,5,5,5,5,6,
+};
+
+
+const int rook_relevant_bits[64] = {
+12,11,11,11,11,11,11,12,
+11,10,10,10,10,10,10,11,
+11,10,10,10,10,10,10,11,
+11,10,10,10,10,10,10,11,
+11,10,10,10,10,10,10,11,
+11,10,10,10,10,10,10,11,
+11,10,10,10,10,10,10,11,
+12,11,11,11,11,11,11,12,
+};
  
 
 /// PAWN ATTACKS
@@ -347,13 +371,15 @@ int main(){
 
     init_leaper_attacks();
 
-    U64 attack_mask = mask_rook_attacks(a1);
+    for (int rank = 0; rank < 8; rank++){
+        for (int file = 0; file < 8;file++){
+            int square = rank*8+file;
 
+            std::cout << count_bits(mask_rook_attacks(square)) << ",";
+        }
 
-    U64 occupancy = set_occupancy(4095,count_bits(attack_mask),attack_mask);
-
-    print_bitboard(occupancy);
-
+        std::cout << "\n";
+    }
 
    
     return 0;
