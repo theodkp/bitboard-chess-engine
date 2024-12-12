@@ -129,6 +129,7 @@ const int bishop_relevant_bits[64] = {
 };
 
 
+// Count of bits for each position in a rook attack ray
 const int rook_relevant_bits[64] = {
 12,11,11,11,11,11,11,12,
 11,10,10,10,10,10,10,11,
