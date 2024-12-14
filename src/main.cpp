@@ -1,9 +1,9 @@
-/// Headers
+// Headers
 
 #include <iostream>
 #include <stdio.h>
 
-/// MACROS ETC
+// MACROS ETC
 using U64 = unsigned long long;
 
 
@@ -20,9 +20,10 @@ enum {
     a1, b1, c1, d1, e1, f1, g1, h1,
 };
 
+// piece colours
 enum {white,black};
 
-
+// string version board pos map
 const char *square_to_coordinates[] = {
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
     "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
@@ -45,12 +46,13 @@ inline void set_bit(U64& bitboard, int square) {
     bitboard |= (1ULL << square); 
 }
 
+// unset bit, will not flip
 inline void unset_bit(U64& bitboard, int square){
     bitboard &= ~(1ULL << square);
 
 }
 
-///// Bit MANIPULATIONS
+// Bit MANIPULATIONS
 
 
 // Count bits
@@ -60,6 +62,7 @@ static inline int count_bits(U64 bitboard){
 }
 
 
+// Get the index of our least significant set bit
 static inline int get_lsf_bit_index(U64 bitboard){
     if (bitboard){
         return count_bits((bitboard & -bitboard)-1);
@@ -70,7 +73,7 @@ static inline int get_lsf_bit_index(U64 bitboard){
     
 }
 
-/// Print bitboard visulisation
+// Print bitboard visulisation
 void print_bitboard(U64 bitboard){
 
 std::cout << "\n";
@@ -94,19 +97,19 @@ std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
 std::cout << "     Bitboard: " << bitboard;
 
 }
-/// ATTACKS
+// ATTACKS
 
 
-/// lookup table will return binary rep of our possible pawn attacks for certain square
+// lookup table will return binary rep of our possible pawn attacks for certain square
 U64 pawn_attacks[2][64];
 
-/// knight attack table
+// knight attack table
 U64 knight_attacks[64];
 
-/// king attack table
+// king attack table
 U64 king_attacks[64];
 
-/// returns a U64 bitboard with all bits set except given file/s
+// returns a U64 bitboard with all bits set except given file/s
 
 const U64 not_a_file = 18374403900871474942ULL;
 
@@ -116,7 +119,7 @@ const U64 not_hg_file = 4557430888798830399ULL;
 
 const U64 not_ab_file = 18229723555195321596ULL;
 
-
+// Count of bits for each position in a bishop attack ray
 const int bishop_relevant_bits[64] = {
 6,5,5,5,5,5,5,6,
 5,5,5,5,5,5,5,5,
@@ -142,7 +145,7 @@ const int rook_relevant_bits[64] = {
 };
  
 
-/// PAWN ATTACKS
+// PAWN ATTACKS
 U64 mask_pawn_attacks(int side, int square){
 
     // result board
@@ -176,7 +179,7 @@ U64 mask_pawn_attacks(int side, int square){
 
 }
 
-/// KNIGHT ATTACKS
+// KNIGHT ATTACKS
 U64 mask_knight_attacks(int square){
     U64 attacks = 0ULL;
 
@@ -200,7 +203,7 @@ U64 mask_knight_attacks(int square){
     return attacks;
 }
 
-/// KING ATTACKS
+// KING ATTACKS
 
 U64 mask_king_attacks(int square){
     U64 attacks = 0ULL;
@@ -226,7 +229,7 @@ U64 mask_king_attacks(int square){
 
 
 
-/// Bishop attacks
+// Bishop attacks
 U64 mask_bishop_attacks(int square){
 
     U64 attacks = 0ULL;
@@ -245,7 +248,7 @@ U64 mask_bishop_attacks(int square){
 
 }
 
-/// Bishop attacks
+// Bishop attacks
 U64 gen_bishop_attacks(int square, U64 block){
 
     U64 attacks = 0ULL;
@@ -334,6 +337,8 @@ U64 gen_rook_attacks(int square,U64 block){
 
 }
 
+
+// Initialize pre computed attack arrays
 void init_leaper_attacks(){
 
     for (int square = 0; square <64; square++){
@@ -346,6 +351,7 @@ void init_leaper_attacks(){
 
 }
 
+// magic bitboard
 U64 set_occupancy(int index, int bits_in_mask , U64 attack_mask){
 
     U64 occupancy = 0ULL;
@@ -366,21 +372,36 @@ U64 set_occupancy(int index, int bits_in_mask , U64 attack_mask){
 
 }
 
- //// MAIN 
+unsigned int state = 1804289383;
+
+// XORSHIFT32 algorithm
+unsigned int get_random_number(){
+    unsigned int x = state;
+
+    x^= x << 13;
+    x^= x >> 17;
+    x^= x << 5;
+
+
+    state = x;
+
+    return x;
+}
+
+#include <stdlib.h>
+
+
+ // MAIN 
 
 int main(){
 
     init_leaper_attacks();
 
-    for (int rank = 0; rank < 8; rank++){
-        for (int file = 0; file < 8;file++){
-            int square = rank*8+file;
+    
+    std::cout << get_random_number() << "\n";
+    std::cout << get_random_number();
 
-            std::cout << count_bits(mask_rook_attacks(square)) << ",";
-        }
 
-        std::cout << "\n";
-    }
 
    
     return 0;
