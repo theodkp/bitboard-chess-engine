@@ -6,6 +6,41 @@
 // MACROS ETC
 using U64 = unsigned long long;
 
+// Randomising functions
+unsigned int state = 1804289383;
+
+// XORSHIFT32 algorithm
+unsigned int get_random_number_U32(){
+    unsigned int x = state;
+
+    x^= x << 13;
+    x^= x >> 17;
+    x^= x << 5;
+
+
+    state = x;
+
+    return x;
+}
+
+U64 get_random_number_U64(){
+    
+    U64 n1,n2,n3,n4;
+
+    n1 = ((U64)get_random_number_U32() & 0xFFFF);
+    n2 = ((U64)get_random_number_U32() & 0xFFFF);
+    n3 = ((U64)get_random_number_U32() & 0xFFFF);
+    n4 = ((U64)get_random_number_U32() & 0xFFFF);
+
+    return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
+
+}
+
+
+// generate magic number
+U64 gen_magic_number(){
+    return get_random_number_U64() &  get_random_number_U64() & get_random_number_U64();
+}
 
 
 // board pos map
@@ -372,24 +407,6 @@ U64 set_occupancy(int index, int bits_in_mask , U64 attack_mask){
 
 }
 
-unsigned int state = 1804289383;
-
-// XORSHIFT32 algorithm
-unsigned int get_random_number(){
-    unsigned int x = state;
-
-    x^= x << 13;
-    x^= x >> 17;
-    x^= x << 5;
-
-
-    state = x;
-
-    return x;
-}
-
-#include <stdlib.h>
-
 
  // MAIN 
 
@@ -398,8 +415,11 @@ int main(){
     init_leaper_attacks();
 
     
-    std::cout << get_random_number() << "\n";
-    std::cout << get_random_number();
+
+    print_bitboard((U64)get_random_number_U32());
+    print_bitboard((U64)get_random_number_U32() & 0xFFFF);
+    print_bitboard(get_random_number_U64());
+    print_bitboard(gen_magic_number());
 
 
 
