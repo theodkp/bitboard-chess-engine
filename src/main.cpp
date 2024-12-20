@@ -2,23 +2,24 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <string.h>
 
 // MACROS ETC
 using U64 = unsigned long long;
 
 // Randomising functions
-unsigned int state = 1804289383;
+unsigned int random_state = 1804289383;
 
 // XORSHIFT32 algorithm
 unsigned int get_random_number_U32(){
-    unsigned int x = state;
+    unsigned int x = random_state;
 
     x^= x << 13;
     x^= x >> 17;
     x^= x << 5;
 
 
-    state = x;
+    random_state = x;
 
     return x;
 }
@@ -27,10 +28,10 @@ U64 get_random_number_U64(){
     
     U64 n1,n2,n3,n4;
 
-    n1 = ((U64)get_random_number_U32() & 0xFFFF);
-    n2 = ((U64)get_random_number_U32() & 0xFFFF);
-    n3 = ((U64)get_random_number_U32() & 0xFFFF);
-    n4 = ((U64)get_random_number_U32() & 0xFFFF);
+    n1 = ((U64)(get_random_number_U32()) & 0xFFFF);
+    n2 = ((U64)(get_random_number_U32()) & 0xFFFF);
+    n3 = ((U64)(get_random_number_U32()) & 0xFFFF);
+    n4 = ((U64)(get_random_number_U32()) & 0xFFFF);
 
     return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
 
@@ -57,6 +58,8 @@ enum {
 
 // piece colours
 enum {white,black};
+
+enum {rook, bishop};
 
 // string version board pos map
 const char *square_to_coordinates[] = {
@@ -406,6 +409,42 @@ U64 set_occupancy(int index, int bits_in_mask , U64 attack_mask){
     return occupancy;
 
 }
+
+
+// MAGIC *******************
+
+U64 find_magic_number(int square, int relevant_bits, int bishop){
+    U64 occupancies[4096];  
+
+    U64 attacks[4096];
+
+    U64 used_attacks[4096];
+
+
+    U64 attack_mask = (bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square));
+    
+    int occupancy_inidices = 1 << relevant_bits;
+
+    for (int i = 0 ; i < occupancy_inidices; i++){
+        occupancies[i] = set_occupancy(i,relevant_bits,attack_mask);
+
+        attacks[i] = bishop ? gen_bishop_attacks(square,occupancies[i]) : gen_rook_attacks(square,occupancies[i]);
+
+
+    } 
+
+    for (int rc = 0 ; rc < 100000000; rc++ ){
+        U64 magic_number = gen_magic_number();
+
+        // skip bad nums
+        if (count_bits((attack_mask * magic_number) & 0xFF00000000000000) < 6) continue;
+
+        memset(used_attacks,0ULL,sizeof(used_attacks));
+
+        
+    }
+    return 0ULL;
+};
 
 
  // MAIN 
