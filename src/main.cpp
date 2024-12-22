@@ -288,34 +288,43 @@ U64 mask_bishop_attacks(int square){
 
 // Bishop attacks
 U64 gen_bishop_attacks(int square, U64 block){
-
+ // result attacks bitboard
     U64 attacks = 0ULL;
-
-    int r,f;
-
+    
+    // init ranks & files
+    int r, f;
+    
+    // init target rank & files
     int tr = square / 8;
     int tf = square % 8;
-
-    for (r = tr+ 1 , f = tf+1; r <= 7 && f <= 7; r++,f++){
-        attacks|= (1ULL << (r * 8 + f));
-        // If diag is being blocked by piece
-        if ((1ULL << ( r*8 + f )) & block) break;
-    } 
-    for (r = tr - 1 , f = tf+1; r >=0 && f <= 7; r--,f++) {
-        attacks|= (1ULL << (r * 8 + f));
-        if ((1ULL << ( r*8 + f )) & block) break;
-    } 
-    for (r = tr+ 1 , f = tf-1; r <= 7 && f >= 0; r++,f--){
-        attacks|= (1ULL << (r * 8 + f));
-        if ((1ULL << ( r*8 + f )) & block) break;
-    } 
-    for (r = tr- 1 , f = tf-1; r >= 0 && f >= 0; r--,f--) {
-        attacks|= (1ULL << (r * 8 + f));
-        if ((1ULL << ( r*8 + f )) & block) break;
+    
+    // generate bishop atacks
+    for (r = tr + 1, f = tf + 1; r <= 7 && f <= 7; r++, f++)
+    {
+        attacks |= (1ULL << (r * 8 + f));
+        if ((1ULL << (r * 8 + f)) & block) break;
     }
-
+    
+    for (r = tr - 1, f = tf + 1; r >= 0 && f <= 7; r--, f++)
+    {
+        attacks |= (1ULL << (r * 8 + f));
+        if ((1ULL << (r * 8 + f)) & block) break;
+    }
+    
+    for (r = tr + 1, f = tf - 1; r <= 7 && f >= 0; r++, f--)
+    {
+        attacks |= (1ULL << (r * 8 + f));
+        if ((1ULL << (r * 8 + f)) & block) break;
+    }
+    
+    for (r = tr - 1, f = tf - 1; r >= 0 && f >= 0; r--, f--)
+    {
+        attacks |= (1ULL << (r * 8 + f));
+        if ((1ULL << (r * 8 + f)) & block) break;
+    }
+    
+    // return attack map
     return attacks;
-
 }
 
 U64 mask_rook_attacks(int square){
@@ -342,37 +351,43 @@ U64 mask_rook_attacks(int square){
 
 U64 gen_rook_attacks(int square,U64 block){
 
+    // result attacks bitboard
     U64 attacks = 0ULL;
-
-    int r,f;
-
+    
+    // init ranks & files
+    int r, f;
+    
+    // init target rank & files
     int tr = square / 8;
     int tf = square % 8;
-
-    // down
-    for ( r = tr +1; r <= 6; r++){
-        attacks|= (1ULL<< (r*8+tf));
-        if ((1ULL<< (r*8+tf)) & block) break;
-    } 
-    // up 
-    for ( r = tr -1; r >=1; r--){
-        attacks|= (1ULL<< (r*8+tf));
-        if ((1ULL<< (r*8+tf)) & block) break;
-    } 
-    // right
-    for ( f = tf + 1; f <= 6; f++){
-        attacks|= (1ULL<< (tr*8+f));
-        if ((1ULL<< (tr*8+f)) & block) break;
-
-    } 
-    // left
-    for ( f = tf - 1; f >= 1; f--){
-        attacks|= (1ULL<< (tr*8+f));
-        if ((1ULL<< (tr*8+f)) & block) break;
+    
+    // generate rook attacks
+    for (r = tr + 1; r <= 7; r++)
+    {
+        attacks |= (1ULL << (r * 8 + tf));
+        if ((1ULL << (r * 8 + tf)) & block) break;
     }
-
+    
+    for (r = tr - 1; r >= 0; r--)
+    {
+        attacks |= (1ULL << (r * 8 + tf));
+        if ((1ULL << (r * 8 + tf)) & block) break;
+    }
+    
+    for (f = tf + 1; f <= 7; f++)
+    {
+        attacks |= (1ULL << (tr * 8 + f));
+        if ((1ULL << (tr * 8 + f)) & block) break;
+    }
+    
+    for (f = tf - 1; f >= 0; f--)
+    {
+        attacks |= (1ULL << (tr * 8 + f));
+        if ((1ULL << (tr * 8 + f)) & block) break;
+    }
+    
+    // return attack map
     return attacks;
-
 }
 
 
@@ -421,11 +436,11 @@ U64 find_magic_number(int square, int relevant_bits, int bishop){
     U64 used_attacks[4096];
 
 
-    U64 attack_mask = (bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square));
+    U64 attack_mask = bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square);
     
-    int occupancy_inidices = 1 << relevant_bits;
+    int occupancy_indices = 1 << relevant_bits;
 
-    for (int i = 0 ; i < occupancy_inidices; i++){
+    for (int i = 0 ; i < occupancy_indices; i++){
         occupancies[i] = set_occupancy(i,relevant_bits,attack_mask);
 
         attacks[i] = bishop ? gen_bishop_attacks(square,occupancies[i]) : gen_rook_attacks(square,occupancies[i]);
@@ -441,11 +456,47 @@ U64 find_magic_number(int square, int relevant_bits, int bishop){
 
         memset(used_attacks,0ULL,sizeof(used_attacks));
 
-        
+        int i,fail;
+        // test magic index loop
+        for (i = 0, fail = 0; !fail && i < occupancy_indices; i++){
+            // init magic index
+            int magic_index =(int)(( occupancies[i] * magic_number) >> (64 - relevant_bits));
+            // if magic index is candidate
+            if (used_attacks[magic_index] == 0ULL){
+                // check if used attack
+                used_attacks[magic_index] = attacks[i];
+            }
+
+            else if (used_attacks[magic_index] != attacks[i] ){
+                fail = 1;
+            }
+        }
+        if (!fail){
+            return magic_number;
+
+        }
+
+       
     }
+
+    printf("magic number doesnt work");
     return 0ULL;
 };
 
+
+// init magic numbers
+
+void init_magic_numbers(){
+    for (int square = 0; square < 64 ; square++){
+        printf("0x%llxULL\n", find_magic_number(square,rook_relevant_bits[square],rook));
+    }
+
+    printf("\n""");
+
+    for (int square = 0; square < 64 ; square++){
+        printf("0x%llxULL\n", find_magic_number(square,bishop_relevant_bits[square],bishop));
+    }
+}
 
  // MAIN 
 
@@ -455,10 +506,7 @@ int main(){
 
     
 
-    print_bitboard((U64)get_random_number_U32());
-    print_bitboard((U64)get_random_number_U32() & 0xFFFF);
-    print_bitboard(get_random_number_U64());
-    print_bitboard(gen_magic_number());
+    init_magic_numbers();
 
 
 
