@@ -7,6 +7,94 @@
 // MACROS ETC
 using U64 = unsigned long long;
 
+// board pos map
+enum {
+    a8, b8, c8, d8, e8, f8, g8, h8,
+    a7, b7, c7, d7, e7, f7, g7, h7,
+    a6, b6, c6, d6, e6, f6, g6, h6,
+    a5, b5, c5, d5, e5, f5, g5, h5,
+    a4, b4, c4, d4, e4, f4, g4, h4,
+    a3, b3, c3, d3, e3, f3, g3, h3,
+    a2, b2, c2, d2, e2, f2, g2, h2,
+    a1, b1, c1, d1, e1, f1, g1, h1,no_sq
+};
+
+// piece colours
+enum {white,black,both};
+
+enum {rook, bishop};
+
+// 4 bit binary string, representing if we can castle kingside/queenside
+enum {wk = 1 , wq = 2 , bk = 4,bq = 8};
+
+// Character rep
+enum { P, N, B, R, Q, K, p, n, b, r, q, k };
+
+// string version board pos map
+const char *square_to_coordinates[] = {
+    "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
+    "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+    "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
+    "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
+    "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
+    "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
+    "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+    "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"
+};
+
+// define piece bitboards (ie black knights)
+U64 bitboards[12];
+
+// define occupancy bitboards (all white pieces, all black pieces, all pieces)
+U64 occupancies[3];
+
+// whos turn
+int side = -1;
+
+// en passant 
+int en_passant = no_sq;
+
+// castling rights
+int castle;
+
+
+// ASCII pieces
+
+char ascii_pieces[13] = "PNBRQKpnbrqk";
+
+// Unicode pieces
+
+const char* unicode_pieces[12] = {
+    "♙", "♘", "♗", "♖",
+    "♕", "♔", "♟", "♞",
+    "♝", "♜", "♛", "♚"
+};
+
+// convert ascii characters to constants
+int char_pieces[256];
+
+// Initialize everything to some default value (e.g., -1)
+void initCharPieces() {
+    for (int i = 0; i < 256; i++)
+        char_pieces[i] = -1;
+    
+    // Now do specific assignments
+    char_pieces['P'] = P;
+    char_pieces['N'] = N;
+    char_pieces['B'] = B;
+    char_pieces['R'] = R;
+    char_pieces['Q'] = Q;
+    char_pieces['K'] = K;
+    char_pieces['p'] = p;
+    char_pieces['n'] = n;
+    char_pieces['b'] = b;
+    char_pieces['r'] = r;
+    char_pieces['q'] = q;
+    char_pieces['k'] = k;
+}
+
+
+
 // Randomising functions
 unsigned int random_state = 1804289383;
 
@@ -44,49 +132,22 @@ U64 gen_magic_number(){
 }
 
 
-// board pos map
-enum {
-    a8, b8, c8, d8, e8, f8, g8, h8,
-    a7, b7, c7, d7, e7, f7, g7, h7,
-    a6, b6, c6, d6, e6, f6, g6, h6,
-    a5, b5, c5, d5, e5, f5, g5, h5,
-    a4, b4, c4, d4, e4, f4, g4, h4,
-    a3, b3, c3, d3, e3, f3, g3, h3,
-    a2, b2, c2, d2, e2, f2, g2, h2,
-    a1, b1, c1, d1, e1, f1, g1, h1,
-};
 
-// piece colours
-enum {white,black};
-
-enum {rook, bishop};
-
-// string version board pos map
-const char *square_to_coordinates[] = {
-    "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
-    "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-    "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
-    "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
-    "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
-    "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
-    "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-    "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
-};
 
 // non-zero binary string if bit set otherwise zero
 inline bool get_bit(U64 bitboard, int square) {
-    return bitboard & (1ULL << square);
+    return (bitboard) & (1ULL << square);
 }
 
 
 // bitwise OR will set bit no matter if previously set or unset
 inline void set_bit(U64& bitboard, int square) { 
-    bitboard |= (1ULL << square); 
+    (bitboard) |= (1ULL << square); 
 }
 
 // unset bit, will not flip
 inline void unset_bit(U64& bitboard, int square){
-    bitboard &= ~(1ULL << square);
+    (bitboard) &= ~(1ULL << square);
 
 }
 
@@ -730,6 +791,8 @@ static inline U64 get_rook_attacks(int square, U64 occupancy){
 
 void init_all(){
     init_leaper_attacks();
+    initCharPieces();
+
 
     // slider piece attacks
     init_sliders_attacks(bishop);
@@ -748,15 +811,13 @@ int main(){
 
     init_all();
 
-    U64 occupancy = 0ULL;
-
-    print_bitboard(occupancy);
-    set_bit(occupancy,d7);
 
 
-    print_bitboard(get_bishop_attacks(d4,occupancy));
 
-    print_bitboard(get_rook_attacks(d4,occupancy));
+
+    std::cout << unicode_pieces[char_pieces['b']] ;
+
+    
 
     return 0;
 }
