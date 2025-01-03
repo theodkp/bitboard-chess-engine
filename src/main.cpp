@@ -49,7 +49,7 @@ U64 bitboards[12];
 U64 occupancies[3];
 
 // whos turn
-int side = -1;
+int side;
 
 // en passant 
 int en_passant = no_sq;
@@ -196,7 +196,56 @@ std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
 std::cout << "     Bitboard: " << bitboard;
 
 }
-// ATTACKS
+
+// print unicode board
+
+void print_board(){
+
+    for (int rank = 0; rank < 8; rank++){
+        for (int file = 0; file < 8; file++){
+
+            int square = rank* 8 + file;
+
+            if (!file){
+            std::cout << 8 - rank << "  ";
+        }
+
+            int piece = -1;
+
+            // loop over piece bitboards
+            for (int bb_piece = P; bb_piece <= k; bb_piece++){
+                if ( get_bit(bitboards[bb_piece],square) ){
+                    piece = bb_piece;
+                }
+            }
+
+            std::cout << ((piece == -1) ? "." : unicode_pieces[piece]) << " ";
+
+        }
+
+        std::cout << "\n";
+    }
+    std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
+
+
+    std::cout << "side: " << ((!side && (side != -1)) ? "white" : "black") << "\n";
+
+
+    std::cout << "En Passant: " <<( (en_passant != no_sq) ? square_to_coordinates[en_passant] : "no") << "\n";
+
+    std::cout << "Castling rights: "
+          << ((castle & wk) ? 'K' : '-')
+          << ((castle & wq) ? 'Q' : '-')
+          << ((castle & bk) ? 'k' : '-')
+          << ((castle & bq) ? 'q' : '-') 
+          << std::endl;
+
+
+
+}
+
+
+// ATTACKS***************
 
 
 // lookup table will return binary rep of our possible pawn attacks for certain square
@@ -798,7 +847,7 @@ void init_all(){
     init_sliders_attacks(bishop);
     init_sliders_attacks(rook);
 
-    std::cout << "init all";
+    std::cout << "init all" << "\n";
     
 
     
@@ -811,11 +860,72 @@ int main(){
 
     init_all();
 
+    set_bit(bitboards[P], a2);
+    set_bit(bitboards[P], b2);
+    set_bit(bitboards[P], c2);
+    set_bit(bitboards[P], d2);
+    set_bit(bitboards[P], e2);
+    set_bit(bitboards[P], f2);
+    set_bit(bitboards[P], g2);
+    set_bit(bitboards[P], h2);
+    
+    // set white knights
+    set_bit(bitboards[N], b1);
+    set_bit(bitboards[N], g1);
+    
+    // set white bishops
+    set_bit(bitboards[B], c1);
+    set_bit(bitboards[B], f1);
+    
+    // set white rooks
+    set_bit(bitboards[R], a1);
+    set_bit(bitboards[R], h1);
+    
+    // set white queen & king
+    set_bit(bitboards[Q], d1);
+    set_bit(bitboards[K], e1);
+    
+    // set white pawns
+    set_bit(bitboards[p], a7);
+    set_bit(bitboards[p], b7);
+    set_bit(bitboards[p], c7);
+    set_bit(bitboards[p], d7);
+    set_bit(bitboards[p], e7);
+    set_bit(bitboards[p], f7);
+    set_bit(bitboards[p], g7);
+    set_bit(bitboards[p], h7);
+    
+    // set white knights
+    set_bit(bitboards[n], b8);
+    set_bit(bitboards[n], g8);
+    
+    // set white bishops
+    set_bit(bitboards[b], c8);
+    set_bit(bitboards[b], f8);
+    
+    // set white rooks
+    set_bit(bitboards[r], a8);
+    set_bit(bitboards[r], h8);
+    
+    // set white queen & king
+    set_bit(bitboards[q], d8);
+    set_bit(bitboards[k], e8);
+
+    side = black;
+
+    en_passant = e3;
+
+    // set all castle-able
+    castle = 15;
+
+    print_board();
 
 
 
 
-    std::cout << unicode_pieces[char_pieces['b']] ;
+
+
+
 
     
 
