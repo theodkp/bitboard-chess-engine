@@ -1026,6 +1026,39 @@ void init_all(){
 
 }
 
+// MOVE GENERATION ****************************
+
+// generate all possible moves
+void generate_moves(){
+
+    int source,target;
+
+
+    // bitboard copy
+    U64 bitboard, attacks; 
+
+
+    // loop over all piece bitboards
+
+    for (int piece = P; P< k; piece++){
+
+        // create piece bitboard copy
+        bitboard = bitboards[piece];
+
+        if (side == white){
+
+        }
+
+        else {
+            
+        }
+    }
+
+
+}
+
+// Generate all moves
+
 // is square attacked?
 
 static inline int is_square_attacked(int square, int side){
