@@ -1026,22 +1026,76 @@ void init_all(){
 
 }
 
- // MAIN 
+// is square attacked?
+
+static inline int is_square_attacked(int square, int side){
+
+    // LEAPER
+    // attacked by pawns
+    if ((side == white) && (pawn_attacks[black][square]) & bitboards[P] )return 1;
+    if ((side == black) && (pawn_attacks[white][square]) & bitboards[p] )return 1;
+
+    // attacked by knight
+    if (knight_attacks[square] & ((side == white) ? bitboards[N] : bitboards[n])) return 1;
+    
+    // attacked by king
+    if (king_attacks[square] & ((side == white) ? bitboards[K] : bitboards[k])) return 1;
+
+    // SLIDER - have to make sure no blocking pieces
+    // attacked by bishop
+
+    if (get_bishop_attacks(square,occupancies[both]) & ((side == white) ? bitboards[B] : bitboards[b]) ) return 1;
+
+    // attacked by rook
+
+    if (get_rook_attacks(square,occupancies[both]) & ((side == white) ? bitboards[R] : bitboards[r]) ) return 1;
+
+    // attacked by queen
+
+    if (get_queen_attacks(square,occupancies[both]) & ((side == white) ? bitboards[Q] : bitboards[q]) ) return 1; 
+        
+    return 0;
+}
+
+
+// print attacked squares
+
+void print_attacked_squares(int side){
+
+    // for each square
+    for (int rank = 0; rank <8;rank++){
+        for (int file = 0; file < 8; file++){
+
+            int square = rank*8+file;
+
+
+            if(!file){
+                std::cout<< 8- rank << "  ";
+            }
+            // if current square is being attacked 1 else 0
+            std::cout << (is_square_attacked(square,side) ? 1 : 0) << " ";
+        }
+
+        std::cout<< "\n";
+    }
+
+    std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
+}
+
+
+
+ // MAIN **************
 
 int main(){
 
     init_all();
 
-    
-    
-    U64 occupancy = 0ULL;
+    parse_fen(tricky_position);
 
-    set_bit(occupancy,d5);
-    set_bit(occupancy,e3);
 
-    U64 gqa = get_queen_attacks(d4,occupancy);
+    print_attacked_squares(white);
 
-    print_bitboard(gqa);
+    print_board();
 
     
     return 0;
