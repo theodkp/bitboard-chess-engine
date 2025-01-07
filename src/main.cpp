@@ -4,6 +4,14 @@
 #include <stdio.h>
 #include <string.h>
 
+
+// FEN DEBUG POS - format / ranks - turn - castling - enpassant
+#define empty_board "8/8/8/8/8/8/8/8 w - - "
+#define start_position "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
+#define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
+#define killer_position "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
+#define cmk_position "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
+
 // MACROS ETC
 using U64 = unsigned long long;
 
@@ -241,6 +249,138 @@ void print_board(){
           << std::endl;
 
 
+
+}
+
+// Input Fen String Output board position
+void parse_fen(const char *fen){
+    // reset board to default positions
+    // default boards
+    memset(bitboards, 0ULL, sizeof(bitboards));
+    // side occupancy boards (white, black , all)
+    memset(occupancies,0ULL, sizeof(occupancies));
+    // init side white
+    side = 0;
+
+    // en passant init
+    en_passant = no_sq;
+    // castling rights init
+    castle = 0;
+
+    // loop through board
+    for (int rank = 0; rank < 8; rank++){
+        for (int file = 0 ; file < 8; file++){
+
+            int square = rank*8 + file;
+
+            // if current char in fen string is a piece 
+            if ((*fen >= 'a' && *fen <= 'z') || (*fen >= 'A' && *fen <= 'Z') ){
+                
+                // convert piece from fen to char piece, ie 'p' - > P
+                int piece = char_pieces[*fen];
+
+                // set bit (place piece) on piece bitboard at current square
+                set_bit(bitboards[piece],square);
+
+
+
+                // increment our pointer value pointing the next character along
+                fen++;
+
+
+            }
+
+            if(*fen >= '0' && *fen <= '9'){
+
+                // converts char version of int to an actual int
+                int offset = *fen - '0';
+
+
+
+
+                int piece = -1;
+                
+                for (int bb_piece = P; bb_piece <= k; bb_piece++)
+                {
+                    if (get_bit(bitboards[bb_piece], square))
+                        piece = bb_piece;
+                }
+                
+                if (piece == -1)
+                    file--;
+
+                // skip that many squares along the file
+                file+= offset;
+
+                // increment to next char in fen
+                fen++;
+            }
+
+            // if current char in fen string is a seperator between ranks, skip over it
+            if (*fen == '/'){
+                fen++;
+            }
+
+        }
+    }
+
+    // shift pass white space
+    fen++;
+
+    // assign move to either black or white
+    (*fen == 'w') ? (side = white) : (side = black);
+
+    // avoiding more white space
+    fen+=2;
+
+    // setting up our castling rights
+    while(*fen != ' '){
+        switch(*fen){
+            case 'K' : castle |= wk;break;
+            case 'Q' : castle |= wq;break;
+            case 'k' : castle |= bk;break;
+            case 'q' : castle |= bq;break;
+            case '-': break;
+        }
+        fen++;
+    }
+
+    // white space skip
+
+    fen++;
+
+    // setting up en passant rights
+
+    if (*fen != '-'){
+        int file = fen[0] - 'a';
+        int rank = 8 - (fen[1] - '0');
+
+        en_passant = rank * 8 + file;
+
+
+    }
+
+    else{
+        en_passant = no_sq;
+    }
+
+
+    // loop through all white piece bitboards and add to our white board
+    for (int piece=P; piece <= K; piece++){
+
+        occupancies[white] |= bitboards[piece];
+
+    }
+
+    // loop through all black piece bitboards and add to our black board
+    for (int piece=p; piece <= k;piece++){
+        occupancies[black] |= bitboards[piece];
+    }
+
+
+    // Populate our both bitboards with all piece bitboards
+    occupancies[both] |= occupancies[black];
+    occupancies[both] |= occupancies[white];
 
 }
 
@@ -860,74 +1000,13 @@ int main(){
 
     init_all();
 
-    set_bit(bitboards[P], a2);
-    set_bit(bitboards[P], b2);
-    set_bit(bitboards[P], c2);
-    set_bit(bitboards[P], d2);
-    set_bit(bitboards[P], e2);
-    set_bit(bitboards[P], f2);
-    set_bit(bitboards[P], g2);
-    set_bit(bitboards[P], h2);
     
-    // set white knights
-    set_bit(bitboards[N], b1);
-    set_bit(bitboards[N], g1);
-    
-    // set white bishops
-    set_bit(bitboards[B], c1);
-    set_bit(bitboards[B], f1);
-    
-    // set white rooks
-    set_bit(bitboards[R], a1);
-    set_bit(bitboards[R], h1);
-    
-    // set white queen & king
-    set_bit(bitboards[Q], d1);
-    set_bit(bitboards[K], e1);
-    
-    // set white pawns
-    set_bit(bitboards[p], a7);
-    set_bit(bitboards[p], b7);
-    set_bit(bitboards[p], c7);
-    set_bit(bitboards[p], d7);
-    set_bit(bitboards[p], e7);
-    set_bit(bitboards[p], f7);
-    set_bit(bitboards[p], g7);
-    set_bit(bitboards[p], h7);
-    
-    // set white knights
-    set_bit(bitboards[n], b8);
-    set_bit(bitboards[n], g8);
-    
-    // set white bishops
-    set_bit(bitboards[b], c8);
-    set_bit(bitboards[b], f8);
-    
-    // set white rooks
-    set_bit(bitboards[r], a8);
-    set_bit(bitboards[r], h8);
-    
-    // set white queen & king
-    set_bit(bitboards[q], d8);
-    set_bit(bitboards[k], e8);
+    parse_fen(tricky_position);
 
-    side = black;
-
-    en_passant = e3;
-
-    // set all castle-able
-    castle = 15;
 
     print_board();
-
-
-
-
-
-
-
+    print_bitboard(occupancies[both]);
 
     
-
     return 0;
 }
