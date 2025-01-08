@@ -1067,10 +1067,10 @@ void generate_moves(){
                         if (source >= a7 && source <= h7){
 
                             //placeholder for move generator
-                            std::cout<< "rook: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "queen: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "knight: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "bishop: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> rook promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> queen promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> knight promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> bishop promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
 
                         }
                         // single and double pawn push
@@ -1088,8 +1088,52 @@ void generate_moves(){
                         }
                     }
 
+                    // pawn captures
 
-                    // clear current bit and move to next in loop
+                    // our pawn attack table for our source square, bitwise and with all black occupancies(making sure we only take when black pieces are present)
+                    attacks = pawn_attacks[side][source] & occupancies[black];
+
+
+                    while (attacks){
+                        target = get_lsf_bit_index(attacks);
+
+                        if (source >= a7 && source <= h7){
+
+                            // capture and promote
+                            std::cout<< "pawn -> rook capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> queen capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> knight capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> bishop capture promotion : " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+                        }
+                        // simple pawn capture
+                        else{
+                            std::cout<< "Pawn capture: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                        }
+
+
+                        unset_bit(attacks,target);
+                    }
+
+                    // en passant capture
+
+                    if (en_passant != no_sq){
+
+                        U64 en_passant_attacks = pawn_attacks[side][source] & (1ULL << en_passant);
+
+                        if (en_passant_attacks){
+                            int target_en_passant = get_lsf_bit_index(en_passant_attacks);
+                            std::cout<< "en passant capture : " << square_to_coordinates[source] << " " <<  square_to_coordinates[target_en_passant] << "\n";
+
+                            
+                        }
+ 
+                    }
+
+
+
+
+                    // clear current bit and move to  next piece in loop
                     unset_bit(bitboard,source);
 
                 }
@@ -1119,10 +1163,10 @@ void generate_moves(){
                         if (source >= a2 && source <= h2){
 
                             //placeholder for move generator
-                            std::cout<< "rook: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "queen: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "knight: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "bishop: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> rook promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> queen promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> knight promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> bishop promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
 
                         }
                         // single and double pawn push
@@ -1130,7 +1174,7 @@ void generate_moves(){
                             // move one square ahead
                             std::cout<< "Pawn One ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
                             
-                            // make sure square above target is clear (target - 8) and pawn is on second rank
+                            // make sure square above target is clear (target + 8) and pawn is on seventh rank(start square)
                             if((source >= a7 && source <= h7) && !get_bit(occupancies[both],target + 8)){
                                 std::cout<< "Pawn two ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target + 8] << "\n";
 
@@ -1138,6 +1182,46 @@ void generate_moves(){
 
 
                         }
+                    }
+
+                    // our pawn attack table for our source square, bitwise and with all white occupancies(making sure we only take when white pieces are present)
+                    attacks = pawn_attacks[side][source] & occupancies[white];
+
+
+                    while (attacks){
+                        target = get_lsf_bit_index(attacks);
+
+                        if (source >= a2 && source <= h2){
+
+                            // capture and promote
+                            std::cout<< "pawn -> rook capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> queen capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> knight capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "pawn -> bishop capture promotion : " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+                        }
+                        // simple pawn capture
+                        else{
+                            std::cout<< "Pawn capture: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                        }
+
+
+                        unset_bit(attacks,target);
+                    }
+
+                    // en passant capture
+
+                    if (en_passant != no_sq){
+
+                        U64 en_passant_attacks = pawn_attacks[side][source] & (1ULL << en_passant);
+
+                        if (en_passant_attacks){
+                            int target_en_passant = get_lsf_bit_index(en_passant_attacks);
+                            std::cout<< "en passant capture : " << square_to_coordinates[source] << " " <<  square_to_coordinates[target_en_passant] << "\n";
+
+                            
+                        }
+ 
                     }
 
 
@@ -1221,10 +1305,9 @@ int main(){
 
     init_all();
 
-    parse_fen("r3k2r/pP1pqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPpp/R3K2R b KQkq - 0 1 ");
+    parse_fen("r3k2r/8/8/2pPN3/Pp6/8/PPPBBPpp/R3K2R b KQkq a3 0 1 ");
 
 
-    print_attacked_squares(white);
 
     print_board();
 
