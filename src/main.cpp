@@ -1040,17 +1040,115 @@ void generate_moves(){
 
     // loop over all piece bitboards
 
-    for (int piece = P; P< k; piece++){
+    for (int piece = P; piece< k; piece++){
 
         // create piece bitboard copy
         bitboard = bitboards[piece];
+        
 
         if (side == white){
+            // pawn
+            if (piece == P){
+                
+                // looping until all our bits are popped off 
+                while(bitboard){
+
+                    source = get_lsf_bit_index(bitboard);
+
+
+                    target = source - 8;
+
+                    // quiet pawn moves (do not alter material)
+
+                    // make sure target square is not occupied
+                    if (!(target < a8 ) && !get_bit(occupancies[both],target)){
+
+                        // pawn promotion
+                        if (source >= a7 && source <= h7){
+
+                            //placeholder for move generator
+                            std::cout<< "rook: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "queen: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "knight: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "bishop: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+                        }
+                        // single and double pawn push
+                        else{
+                            // move one square ahead
+                            std::cout<< "Pawn One ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            
+                            // make sure square above target is clear (target - 8) and pawn is on second rank
+                            if((source >= a2 && source <= h2) && !get_bit(occupancies[both],target - 8)){
+                                std::cout<< "Pawn two ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target - 8] << "\n";
+
+                            }
+
+
+                        }
+                    }
+
+
+                    // clear current bit and move to next in loop
+                    unset_bit(bitboard,source);
+
+                }
+
+
+            }
 
         }
 
         else {
-            
+            if (piece == p){
+                
+                // looping until all our bits are popped off 
+                while(bitboard){
+
+                    source = get_lsf_bit_index(bitboard);
+
+
+                    target = source + 8;
+
+                    // quiet pawn moves (do not alter material)
+
+                    // make sure target square is not occupied
+                    if (!(target > h1 ) && !get_bit(occupancies[both],target)){
+
+                        // pawn promotion
+                        if (source >= a2 && source <= h2){
+
+                            //placeholder for move generator
+                            std::cout<< "rook: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "queen: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "knight: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            std::cout<< "bishop: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+                        }
+                        // single and double pawn push
+                        else{
+                            // move one square ahead
+                            std::cout<< "Pawn One ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            
+                            // make sure square above target is clear (target - 8) and pawn is on second rank
+                            if((source >= a7 && source <= h7) && !get_bit(occupancies[both],target + 8)){
+                                std::cout<< "Pawn two ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target + 8] << "\n";
+
+                            }
+
+
+                        }
+                    }
+
+
+                    // clear current bit and move to next in loop
+                    unset_bit(bitboard,source);
+
+                }
+
+
+            }
+
         }
     }
 
@@ -1123,12 +1221,15 @@ int main(){
 
     init_all();
 
-    parse_fen(tricky_position);
+    parse_fen("r3k2r/pP1pqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPpp/R3K2R b KQkq - 0 1 ");
 
 
     print_attacked_squares(white);
 
     print_board();
+
+
+    generate_moves();
 
     
     return 0;
