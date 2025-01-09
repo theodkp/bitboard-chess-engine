@@ -11,6 +11,7 @@
 #define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
 #define killer_position "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
 #define cmk_position "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
+#define en_passant_test "r3k2r/8/8/2pPN3/Pp6/8/PPPBBPpp/R3K2R b KQkq a3 0 1 "
 
 // MACROS ETC
 using U64 = unsigned long long;
@@ -1026,6 +1027,37 @@ void init_all(){
 
 }
 
+// is square attacked?
+
+static inline int is_square_attacked(int square, int side){
+
+    // LEAPER
+    // attacked by pawns
+    if ((side == white) && (pawn_attacks[black][square]) & bitboards[P] )return 1;
+    if ((side == black) && (pawn_attacks[white][square]) & bitboards[p] )return 1;
+
+    // attacked by knight
+    if (knight_attacks[square] & ((side == white) ? bitboards[N] : bitboards[n])) return 1;
+    
+    // attacked by king
+    if (king_attacks[square] & ((side == white) ? bitboards[K] : bitboards[k])) return 1;
+
+    // SLIDER - have to make sure no blocking pieces
+    // attacked by bishop
+
+    if (get_bishop_attacks(square,occupancies[both]) & ((side == white) ? bitboards[B] : bitboards[b]) ) return 1;
+
+    // attacked by rook
+
+    if (get_rook_attacks(square,occupancies[both]) & ((side == white) ? bitboards[R] : bitboards[r]) ) return 1;
+
+    // attacked by queen
+
+    if (get_queen_attacks(square,occupancies[both]) & ((side == white) ? bitboards[Q] : bitboards[q]) ) return 1; 
+        
+    return 0;
+}
+
 // MOVE GENERATION ****************************
 
 // generate all possible moves
@@ -1040,7 +1072,7 @@ void generate_moves(){
 
     // loop over all piece bitboards
 
-    for (int piece = P; piece< k; piece++){
+    for (int piece = P; piece<= k; piece++){
 
         // create piece bitboard copy
         bitboard = bitboards[piece];
@@ -1116,7 +1148,7 @@ void generate_moves(){
                     }
 
                     // en passant capture
-
+                    // checks if pawns normal attacks match up with any en passant squares set in fen
                     if (en_passant != no_sq){
 
                         U64 en_passant_attacks = pawn_attacks[side][source] & (1ULL << en_passant);
@@ -1139,6 +1171,39 @@ void generate_moves(){
                 }
 
 
+            }
+
+            //castling 
+            if(piece == K){
+                // kingside castle available
+                if (castle & wk){
+
+                    // make sure clear between king and rook
+                    if (!get_bit(occupancies[both],f1) && !get_bit(occupancies[both],g1)){
+                        // make sure king and f1 square not under attack
+                        if (!is_square_attacked(e1,black) && !is_square_attacked(f1,black)){
+                            std::cout<< "castle king side available: " << "e1" << " " <<  "g1" << "\n";
+
+                        }
+
+                    }
+
+
+                }
+                // queenside castling availablle
+                if (castle & wq) {
+
+                    // make sure clear between king and rook
+                    if (!get_bit(occupancies[both],b1) && !get_bit(occupancies[both],c1) && !get_bit(occupancies[both],d1)){
+                        // make sure king and d1 square not under attack
+                        if (!is_square_attacked(e1,black) && !is_square_attacked(d1,black)){
+                            std::cout<< "castle queen side available: " << "e1" << " " <<  "c1" << "\n";
+
+                        }
+
+                    }
+
+                }
             }
 
         }
@@ -1233,45 +1298,43 @@ void generate_moves(){
 
             }
 
+            if(piece == k){
+                // kingside castle available
+                if (castle & bk){
+
+                    // make sure clear between king and rook
+                    if (!get_bit(occupancies[both],f8) && !get_bit(occupancies[both],g8)){
+                        // make sure king and f8 square not under attack
+                        if (!is_square_attacked(e8,white) && !is_square_attacked(f8,white)){
+                            std::cout<< "castle king side available: " << "e8" << " " <<  "g8" << "\n";
+
+                        }
+
+                    }
+
+
+                }
+                // queenside castling availablle
+                if (castle & bq) {
+
+                    // make sure clear between king and rook
+                    if (!get_bit(occupancies[both],b8) && !get_bit(occupancies[both],c8) && !get_bit(occupancies[both],d8)){
+                        // make sure king and d8 square not under attack
+                        if (!is_square_attacked(e8,white) && !is_square_attacked(d8,white)){
+                            std::cout<< "castle queen side available: " << "e8" << " " <<  "c8" << "\n";
+
+                        }
+
+                    }
+
+                }
+            }
+
         }
     }
 
 
 }
-
-// Generate all moves
-
-// is square attacked?
-
-static inline int is_square_attacked(int square, int side){
-
-    // LEAPER
-    // attacked by pawns
-    if ((side == white) && (pawn_attacks[black][square]) & bitboards[P] )return 1;
-    if ((side == black) && (pawn_attacks[white][square]) & bitboards[p] )return 1;
-
-    // attacked by knight
-    if (knight_attacks[square] & ((side == white) ? bitboards[N] : bitboards[n])) return 1;
-    
-    // attacked by king
-    if (king_attacks[square] & ((side == white) ? bitboards[K] : bitboards[k])) return 1;
-
-    // SLIDER - have to make sure no blocking pieces
-    // attacked by bishop
-
-    if (get_bishop_attacks(square,occupancies[both]) & ((side == white) ? bitboards[B] : bitboards[b]) ) return 1;
-
-    // attacked by rook
-
-    if (get_rook_attacks(square,occupancies[both]) & ((side == white) ? bitboards[R] : bitboards[r]) ) return 1;
-
-    // attacked by queen
-
-    if (get_queen_attacks(square,occupancies[both]) & ((side == white) ? bitboards[Q] : bitboards[q]) ) return 1; 
-        
-    return 0;
-}
-
 
 // print attacked squares
 
@@ -1305,7 +1368,7 @@ int main(){
 
     init_all();
 
-    parse_fen("r3k2r/8/8/2pPN3/Pp6/8/PPPBBPpp/R3K2R b KQkq a3 0 1 ");
+    parse_fen("r3k2r/8/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQ - 0 1 ");
 
 
 
