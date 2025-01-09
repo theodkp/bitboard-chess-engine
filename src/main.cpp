@@ -1079,7 +1079,7 @@ void generate_moves(){
         
 
         if (side == white){
-            // pawn
+            // GEN WHITE PAWN MOVES
             if (piece == P){
                 
                 // looping until all our bits are popped off 
@@ -1173,7 +1173,7 @@ void generate_moves(){
 
             }
 
-            //castling 
+            //WHITE KING CASTLING 
             if(piece == K){
                 // kingside castle available
                 if (castle & wk){
@@ -1209,6 +1209,7 @@ void generate_moves(){
         }
 
         else {
+            // GEN BLACK PAWN MOVES
             if (piece == p){
                 
                 // looping until all our bits are popped off 
@@ -1298,6 +1299,7 @@ void generate_moves(){
 
             }
 
+            // GEN BLACK KING CASTLING
             if(piece == k){
                 // kingside castle available
                 if (castle & bk){
@@ -1331,6 +1333,205 @@ void generate_moves(){
             }
 
         }
+
+        // GEN KNIGHT MOVES
+        if ((side == white) ? piece == N : piece == n ){
+
+            while (bitboard){
+                source  = get_lsf_bit_index(bitboard);
+
+
+                // by using the not operator we make sure that only empty or opposite side pieces are potential attacks
+                attacks = knight_attacks[source] & ((side == white) ? ~occupancies[white] : ~occupancies[black]);
+
+
+                // go through our possible attack targets
+                while (attacks){
+                    
+                    // each target
+                    target = get_lsf_bit_index(attacks);
+
+                    // quiet
+                    //if target square is not occupied by opponent pieces, we can move
+                    if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
+                        std::cout<< "Non-capture Knight: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+
+                    }
+                    
+                    // else target has to be an opponent piece, we can take
+                    else{std::cout<< "capture Knight: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+
+
+                    unset_bit(attacks,target);
+
+                }
+ 
+
+                unset_bit(bitboard,source);
+            }
+        }
+
+        // GEN BISHOP MOVES
+
+        if ((side == white) ? piece == B : piece == b ){
+
+            while (bitboard){
+                source  = get_lsf_bit_index(bitboard);
+
+
+                // by using the not operator we make sure that only empty or opposite side pieces are potential attacks
+                attacks = get_bishop_attacks(source,occupancies[both]) & ((side == white) ? ~occupancies[white] : ~occupancies[black]);
+
+
+                // go through our possible attack targets
+                while (attacks){
+                    
+                    // each target
+                    target = get_lsf_bit_index(attacks);
+
+                    // quiet
+                    //if target square is not occupied by opponent pieces, we can move
+                    if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
+                        std::cout<< "Non-capture Bishop: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+
+                    }
+                    
+                    // else target has to be an opponent piece, we can take
+                    else{std::cout<< "capture Bishop: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+
+
+                    unset_bit(attacks,target);
+
+                }
+ 
+
+                unset_bit(bitboard,source);
+            }
+        }
+
+        // GEN ROOK MOVES
+        if ((side == white) ? piece == R : piece == r ){
+
+            while (bitboard){
+                source  = get_lsf_bit_index(bitboard);
+
+
+                // by using the not operator we make sure that only empty or opposite side pieces are potential attacks
+                attacks = get_rook_attacks(source,occupancies[both]) & ((side == white) ? ~occupancies[white] : ~occupancies[black]);
+
+
+                // go through our possible attack targets
+                while (attacks){
+                    
+                    // each target
+                    target = get_lsf_bit_index(attacks);
+
+                    // quiet
+                    //if target square is not occupied by opponent pieces, we can move
+                    if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
+                        std::cout<< "Non-capture ROOK: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+
+                    }
+                    
+                    // else target has to be an opponent piece, we can take
+                    else{std::cout<< "capture ROOK: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+
+
+
+                    unset_bit(attacks,target);
+
+                }
+ 
+
+                unset_bit(bitboard,source);
+            }
+        }
+
+
+        // GEN QUEEN MOVES
+        if ((side == white) ? piece == Q : piece == q ){
+
+            while (bitboard){
+                source  = get_lsf_bit_index(bitboard);
+
+
+                // by using the not operator we make sure that only empty or opposite side pieces are potential attacks
+                attacks = get_queen_attacks(source,occupancies[both]) & ((side == white) ? ~occupancies[white] : ~occupancies[black]);
+
+
+                // go through our possible attack targets
+                while (attacks){
+                    
+                    // each target
+                    target = get_lsf_bit_index(attacks);
+
+                    // quiet
+                    //if target square is not occupied by opponent pieces, we can move
+                    if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
+                        std::cout<< "Non-capture QUEEN: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+
+                    }
+                    
+                    // else target has to be an opponent piece, we can take
+                    else{std::cout<< "capture QUEEN: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+
+
+                    unset_bit(attacks,target);
+
+                }
+ 
+
+                unset_bit(bitboard,source);
+            }
+        }
+
+
+        // GEN KING MOVES
+        if ((side == white) ? piece == K : piece == k ){
+
+            while (bitboard){
+                source  = get_lsf_bit_index(bitboard);
+
+
+                // by using the not operator we make sure that only empty or opposite side pieces are potential attacks
+                attacks = king_attacks[source] & ((side == white) ? ~occupancies[white] : ~occupancies[black]);
+
+
+                // go through our possible attack targets
+                while (attacks){
+                    
+                    // each target
+                    target = get_lsf_bit_index(attacks);
+
+                    // quiet
+                    //if target square is not occupied by opponent pieces, we can move
+                    if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
+                        std::cout<< "Non-capture KING: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+
+
+                    }
+                    
+                    // else target has to be an opponent piece, we can take
+                    else{std::cout<< "capture KING: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+
+
+
+                    unset_bit(attacks,target);
+
+                }
+ 
+
+                unset_bit(bitboard,source);
+            }
+        }
+
+
+
+
     }
 
 
@@ -1368,7 +1569,7 @@ int main(){
 
     init_all();
 
-    parse_fen("r3k2r/8/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQ - 0 1 ");
+    parse_fen(tricky_position);
 
 
 
