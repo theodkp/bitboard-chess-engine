@@ -1563,21 +1563,49 @@ void print_attacked_squares(int side){
 
 
 
+// encode move into hexidecimal
+
+#define encode_move(source,target,piece,promoted,capture,double, enpassant, castling) \
+    ( ((source) & 0x3F)               | \
+      (((target) & 0x3F) << 6)        | \
+      (((piece) & 0x0F) << 12)        | \
+      (((promoted) & 0x0F) << 16)     | \
+      ((capture) << 20)               | \
+      ((double) << 21)           | \
+      ((enpassant) << 22)            | \
+      ((castling) << 23) )
+
+
+#define get_move_source(move) (move & 0x3f)
+#define get_move_target(move) ((move & 0xfc0) >> 6)
+#define get_move_piece(move) ((move & 0xfc000) >> 12)
+#define get_move_promoted(move) ((move & 0xfc0000) >> 16)
+#define get_move_capture(move) ((move & 0x100000))
+#define get_move_double(move) ((move & 0x200000))
+#define get_move_enpassant(move) ((move & 0x300000))
+#define get_move_castling(move) ((move & 0x400000))
+
  // MAIN **************
 
 int main(){
 
     init_all();
 
-    parse_fen(tricky_position);
-
-
-
-    print_board();
-
-
-    generate_moves();
-
+    int move = encode_move(c8, b8, P, 0, 0, 0, 0, 0);
     
+    int source = get_move_source(move);
+    int target = get_move_target(move);
+    int piece = get_move_piece(move);
+    int promoted = get_move_promoted(move);
+    
+    std::cout << "source: " << square_to_coordinates[source] << std::endl;
+    std::cout << "target: " << square_to_coordinates[target] << std::endl;
+    std::cout << "piece: " << unicode_pieces[piece] << std::endl;
+    std::cout << "piece: " << unicode_pieces[promoted] << std::endl;
+    std::cout << "capture flag:  " << (get_move_capture(move) ? 1 : 0) << std::endl;
+    std::cout << "double pawn push flag: " << (get_move_double(move) ? 1 : 0) << std::endl;
+    std::cout << "enpassant flag: " << (get_move_enpassant(move) ? 1 : 0) << std::endl;
+    std::cout << "castling flag: " << (get_move_castling(move) ? 1 : 0) << std::endl;
+
     return 0;
 }
