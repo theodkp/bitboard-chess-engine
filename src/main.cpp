@@ -1242,9 +1242,47 @@ int make_move(int move, int  move_flag){
             (side == white) ? unset_bit(bitboards[p], target + 8) :
                               unset_bit(bitboards[P], target - 8);
         }
-    
-    en_passant = no_sq;
-    return 1;
+
+        en_passant = no_sq;
+
+
+        // if is a double pawn push, we set the en passant square to 1 square behind (depending on colour)
+        if (double_move){
+            (side == white) ? (en_passant = target + 8) : (en_passant = target - 8);
+        }
+
+        // CASTLING
+        if (castling){
+
+            switch(target){
+                // white king castle
+                case (g1):
+                    unset_bit(bitboards[R],h1);
+                    set_bit(bitboards[R],f1);
+                    break;
+                // white queen castle
+                case (c1):
+                    unset_bit(bitboards[R],a1);
+                    set_bit(bitboards[R],d1);
+                    break;
+                // black king castle
+                case (g8):
+                    unset_bit(bitboards[R],h8);
+                    set_bit(bitboards[R],f8);
+                    break;
+                // black queen castle
+                case (c8):
+                    unset_bit(bitboards[R],a8);
+                    set_bit(bitboards[R],d8);
+                    break;
+
+                    
+
+
+            }
+
+        }
+        return 1;
 
     }
     // capture  moves
@@ -1779,7 +1817,7 @@ int main(){
 
     init_all();
 
-    parse_fen("8/8/8/8/2pPN3/8/8/8 b - d3 0 1 ");
+    parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 ");
     print_board();
 
 
