@@ -1205,8 +1205,6 @@ int make_move(int move, int  move_flag){
         // capture moves
         if (capture){
 
-            
-
             // depending on side we loop through opposite bitboards
             int start,end;
 
@@ -1230,8 +1228,23 @@ int make_move(int move, int  move_flag){
             }
         }
 
-        return 1;
 
+        // pawn promotions
+        if (promoted){
+            unset_bit(bitboards[(side == white) ? P : p ],target);
+            set_bit(bitboards[promoted],target);
+        }
+       
+
+        // en passant
+        if (en_pass){
+            // remove pawn being taken
+            (side == white) ? unset_bit(bitboards[p], target + 8) :
+                              unset_bit(bitboards[P], target - 8);
+        }
+    
+    en_passant = no_sq;
+    return 1;
 
     }
     // capture  moves
@@ -1766,7 +1779,7 @@ int main(){
 
     init_all();
 
-    parse_fen(tricky_position);
+    parse_fen("8/8/8/8/2pPN3/8/8/8 b - d3 0 1 ");
     print_board();
 
 
