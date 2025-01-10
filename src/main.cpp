@@ -1099,8 +1099,8 @@ static inline int is_square_attacked(int square, int side){
 #define get_move_promoted(move) ((move & 0xf0000) >> 16)
 #define get_move_capture(move) ((move & 0x100000))
 #define get_move_double(move) ((move & 0x200000))
-#define get_move_enpassant(move) ((move & 0x300000))
-#define get_move_castling(move) ((move & 0x400000))
+#define get_move_enpassant(move) ((move & 0x400000))
+#define get_move_castling(move) ((move & 0x800000))
 
 
 // move list structure
@@ -1133,13 +1133,18 @@ void print_move(int move){
 // print move list
 void print_move_list(moves *move_list){
 
+
+    if (!move_list->count){
+        return;
+    }
+
     std::cout << "\nmove promoted piece capture double enpassant castling \n";
 
     for (int move_count = 0; move_count < move_list->count; move_count++){
         int move = move_list->move[move_count];
         std::cout << square_to_coordinates[get_move_source(move)] 
         <<  square_to_coordinates[get_move_target(move)] << "     "  
-        << promoted_pieces[get_move_promoted(move)] << "     "  
+        << (get_move_promoted(move) ? promoted_pieces[get_move_promoted(move)] : ' ') << "     "  
         << unicode_pieces[get_move_piece(move)] << "     "  
         << (get_move_capture(move) ? 1 : 0) << "        "  
         << (get_move_double(move) ? 1 : 0  )<< "       "  
@@ -1147,13 +1152,19 @@ void print_move_list(moves *move_list){
         << (get_move_castling(move) ? 1 : 0 )  << "\n"  ;
     
 
-    std::cout<< "move count: " <<  move_list->count;
+    
     }
+    std::cout<< "move count: " <<  move_list->count << "\n";
     
 }
 
 // generate all possible moves
-void generate_moves(){
+void generate_moves(moves *move_list){
+
+
+    // move count
+    move_list->count = 0;
+
 
     int source,target;
 
@@ -1190,21 +1201,21 @@ void generate_moves(){
                         // pawn promotion
                         if (source >= a7 && source <= h7){
 
-                            //placeholder for move generator
-                            std::cout<< "pawn -> rook promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> queen promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> knight promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> bishop promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            // add each promotion move
+                            add_move(move_list, encode_move(source,target,piece,R,0,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,Q,0,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,N,0,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,B,0,0,0,0));
 
                         }
                         // single and double pawn push
                         else{
                             // move one square ahead
-                            std::cout<< "Pawn One ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            add_move(move_list, encode_move(source,target,piece,0,0,0,0,0));
                             
                             // make sure square above target is clear (target - 8) and pawn is on second rank
                             if((source >= a2 && source <= h2) && !get_bit(occupancies[both],target - 8)){
-                                std::cout<< "Pawn two ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target - 8] << "\n";
+                                add_move(move_list, encode_move(source,target-8,piece,0,0,1,0,0));
 
                             }
 
@@ -1224,15 +1235,15 @@ void generate_moves(){
                         if (source >= a7 && source <= h7){
 
                             // capture and promote
-                            std::cout<< "pawn -> rook capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> queen capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> knight capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> bishop capture promotion : " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            add_move(move_list, encode_move(source,target,piece,R,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,Q,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,N,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,B,1,0,0,0));
 
                         }
                         // simple pawn capture
                         else{
-                            std::cout<< "Pawn capture: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            add_move(move_list, encode_move(source,target,piece,0,1,0,0,0));
                         }
 
 
@@ -1247,7 +1258,7 @@ void generate_moves(){
 
                         if (en_passant_attacks){
                             int target_en_passant = get_lsf_bit_index(en_passant_attacks);
-                            std::cout<< "en passant capture : " << square_to_coordinates[source] << " " <<  square_to_coordinates[target_en_passant] << "\n";
+                            add_move(move_list, encode_move(source,target_en_passant,piece,0,1,0,1,0));
 
                             
                         }
@@ -1274,7 +1285,7 @@ void generate_moves(){
                     if (!get_bit(occupancies[both],f1) && !get_bit(occupancies[both],g1)){
                         // make sure king and f1 square not under attack
                         if (!is_square_attacked(e1,black) && !is_square_attacked(f1,black)){
-                            std::cout<< "castle king side available: " << "e1" << " " <<  "g1" << "\n";
+                            add_move(move_list, encode_move(e1,g1,piece,0,0,0,0,1));
 
                         }
 
@@ -1289,7 +1300,7 @@ void generate_moves(){
                     if (!get_bit(occupancies[both],b1) && !get_bit(occupancies[both],c1) && !get_bit(occupancies[both],d1)){
                         // make sure king and d1 square not under attack
                         if (!is_square_attacked(e1,black) && !is_square_attacked(d1,black)){
-                            std::cout<< "castle queen side available: " << "e1" << " " <<  "c1" << "\n";
+                             add_move(move_list, encode_move(e1,c1,piece,0,0,0,0,1));
 
                         }
 
@@ -1321,20 +1332,20 @@ void generate_moves(){
                         if (source >= a2 && source <= h2){
 
                             //placeholder for move generator
-                            std::cout<< "pawn -> rook promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> queen promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> knight promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> bishop promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            add_move(move_list, encode_move(source,target,piece,r,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,q,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,n,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,b,1,0,0,0));
 
                         }
                         // single and double pawn push
                         else{
                             // move one square ahead
-                            std::cout<< "Pawn One ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            add_move(move_list, encode_move(source,target,piece,0,0,0,0,0));
                             
                             // make sure square above target is clear (target + 8) and pawn is on seventh rank(start square)
                             if((source >= a7 && source <= h7) && !get_bit(occupancies[both],target + 8)){
-                                std::cout<< "Pawn two ahead: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target + 8] << "\n";
+                                add_move(move_list, encode_move(source,target+8,piece,0,0,1,0,0));
 
                             }
 
@@ -1352,15 +1363,15 @@ void generate_moves(){
                         if (source >= a2 && source <= h2){
 
                             // capture and promote
-                            std::cout<< "pawn -> rook capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> queen capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> knight capture promotion: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
-                            std::cout<< "pawn -> bishop capture promotion : " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            add_move(move_list, encode_move(source,target,piece,r,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,q,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,n,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,b,1,0,0,0));
 
                         }
                         // simple pawn capture
                         else{
-                            std::cout<< "Pawn capture: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                            add_move(move_list, encode_move(source,target,piece,0,1,0,0,0));
                         }
 
 
@@ -1375,7 +1386,7 @@ void generate_moves(){
 
                         if (en_passant_attacks){
                             int target_en_passant = get_lsf_bit_index(en_passant_attacks);
-                            std::cout<< "en passant capture : " << square_to_coordinates[source] << " " <<  square_to_coordinates[target_en_passant] << "\n";
+                            add_move(move_list, encode_move(source,target_en_passant,piece,0,1,0,1,0));
 
                             
                         }
@@ -1400,7 +1411,7 @@ void generate_moves(){
                     if (!get_bit(occupancies[both],f8) && !get_bit(occupancies[both],g8)){
                         // make sure king and f8 square not under attack
                         if (!is_square_attacked(e8,white) && !is_square_attacked(f8,white)){
-                            std::cout<< "castle king side available: " << "e8" << " " <<  "g8" << "\n";
+                            add_move(move_list, encode_move(e8,f8,piece,0,0,0,0,1));
 
                         }
 
@@ -1415,7 +1426,7 @@ void generate_moves(){
                     if (!get_bit(occupancies[both],b8) && !get_bit(occupancies[both],c8) && !get_bit(occupancies[both],d8)){
                         // make sure king and d8 square not under attack
                         if (!is_square_attacked(e8,white) && !is_square_attacked(d8,white)){
-                            std::cout<< "castle queen side available: " << "e8" << " " <<  "c8" << "\n";
+                            add_move(move_list, encode_move(e8,c8,piece,0,0,0,0,1));
 
                         }
 
@@ -1446,13 +1457,13 @@ void generate_moves(){
                     // quiet
                     //if target square is not occupied by opponent pieces, we can move
                     if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
-                        std::cout<< "Non-capture Knight: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                        add_move(move_list, encode_move(source,target,piece,0,0,0,0,0));
 
 
                     }
                     
                     // else target has to be an opponent piece, we can take
-                    else{std::cout<< "capture Knight: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+                    else{add_move(move_list, encode_move(source,target,piece,0,1,0,0,0));}
 
 
                     unset_bit(attacks,target);
@@ -1485,13 +1496,13 @@ void generate_moves(){
                     // quiet
                     //if target square is not occupied by opponent pieces, we can move
                     if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
-                        std::cout<< "Non-capture Bishop: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                        add_move(move_list, encode_move(source,target,piece,0,0,0,0,0));
 
 
                     }
                     
                     // else target has to be an opponent piece, we can take
-                    else{std::cout<< "capture Bishop: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+                    else{add_move(move_list, encode_move(source,target,piece,0,1,0,0,0));}
 
 
                     unset_bit(attacks,target);
@@ -1523,13 +1534,13 @@ void generate_moves(){
                     // quiet
                     //if target square is not occupied by opponent pieces, we can move
                     if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
-                        std::cout<< "Non-capture ROOK: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                        add_move(move_list, encode_move(source,target,piece,0,0,0,0,0));
 
 
                     }
                     
                     // else target has to be an opponent piece, we can take
-                    else{std::cout<< "capture ROOK: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+                    else{add_move(move_list, encode_move(source,target,piece,0,1,0,0,0));}
 
 
 
@@ -1563,13 +1574,13 @@ void generate_moves(){
                     // quiet
                     //if target square is not occupied by opponent pieces, we can move
                     if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
-                        std::cout<< "Non-capture QUEEN: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                        add_move(move_list, encode_move(source,target,piece,0,0,0,0,0));
 
 
                     }
                     
                     // else target has to be an opponent piece, we can take
-                    else{std::cout<< "capture QUEEN: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+                    else{add_move(move_list, encode_move(source,target,piece,0,1,0,0,0));}
 
 
                     unset_bit(attacks,target);
@@ -1602,13 +1613,13 @@ void generate_moves(){
                     // quiet
                     //if target square is not occupied by opponent pieces, we can move
                     if (!get_bit( ((side == white) ? occupancies[black] : occupancies[white]),target) ){
-                        std::cout<< "Non-capture KING: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";
+                        add_move(move_list, encode_move(source,target,piece,0,0,0,0,0));
 
 
                     }
                     
                     // else target has to be an opponent piece, we can take
-                    else{std::cout<< "capture KING: " << square_to_coordinates[source] << " " <<  square_to_coordinates[target] << "\n";}
+                    else{add_move(move_list, encode_move(source,target,piece,0,1,0,0,0));}
 
 
 
@@ -1663,14 +1674,14 @@ int main(){
 
     init_all();
 
-    
+    parse_fen(tricky_position);
+    print_board();
 
     moves move_list[1];
 
-    move_list->count = 0;
-    
-    add_move(move_list,encode_move(d7, e8, P, Q, 1, 1, 1, 1) ); 
 
+    generate_moves(move_list);
+    
     print_move_list(move_list);
 
 
