@@ -1202,6 +1202,34 @@ int make_move(int move, int  move_flag){
         unset_bit(bitboards[piece],source);
         set_bit(bitboards[piece],target);
 
+        // capture moves
+        if (capture){
+
+            
+
+            // depending on side we loop through opposite bitboards
+            int start,end;
+
+            if (side == white){
+                start = p;
+                end = k;
+            }
+            else{
+                start = P;
+                end = K;
+            }
+            // if piece on target square (capture) we remove it from bitboard
+            for (int bb_piece = start; bb_piece <= end; bb_piece++){
+                if (get_bit(bitboards[bb_piece], target)){
+                    unset_bit(bitboards[bb_piece], target);
+                    break;
+                }
+
+
+
+            }
+        }
+
         return 1;
 
 
@@ -1210,7 +1238,7 @@ int make_move(int move, int  move_flag){
     else{
             if (get_move_capture(move)){
                 //recursive call
-                make_move(move,all_moves);
+                return make_move(move,all_moves);
 
                 
             }
