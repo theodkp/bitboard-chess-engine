@@ -3,6 +3,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
+#include <unordered_map>
+
 
 
 // FEN DEBUG POS - format / ranks - turn - castling - enpassant
@@ -101,6 +103,22 @@ void initCharPieces() {
     char_pieces['q'] = q;
     char_pieces['k'] = k;
 }
+
+char promoted_pieces[12] =
+{
+    '\0',
+    'n',
+    'b',
+    'r',
+    'q',
+    '\0',
+    '\0',
+    'n',
+    'b',
+    'r',
+    'q',
+    '\0',
+};
 
 
 
@@ -1058,7 +1076,81 @@ static inline int is_square_attacked(int square, int side){
     return 0;
 }
 
+
+
 // MOVE GENERATION ****************************
+
+// encode move into hexidecimal
+
+#define encode_move(source,target,piece,promoted,capture,double, enpassant, castling) \
+    ( ((source) & 0x3F)               | \
+      (((target) & 0x3F) << 6)        | \
+      (((piece) & 0x0F) << 12)        | \
+      (((promoted) & 0x0F) << 16)     | \
+      ((capture) << 20)               | \
+      ((double) << 21)           | \
+      ((enpassant) << 22)            | \
+      ((castling) << 23) )
+
+// extracting info from decoded move
+#define get_move_source(move) (move & 0x3f)
+#define get_move_target(move) ((move & 0xfc0) >> 6)
+#define get_move_piece(move) ((move & 0xf000) >> 12)
+#define get_move_promoted(move) ((move & 0xf0000) >> 16)
+#define get_move_capture(move) ((move & 0x100000))
+#define get_move_double(move) ((move & 0x200000))
+#define get_move_enpassant(move) ((move & 0x300000))
+#define get_move_castling(move) ((move & 0x400000))
+
+
+// move list structure
+typedef struct {
+    int move[256];
+
+    int count;
+
+} moves;
+
+// add move to move list
+
+void add_move(moves *move_list, int move){
+
+    //store move
+    move_list->move[move_list->count] = move;
+
+    // increment move count
+    move_list->count++;
+
+}
+
+
+
+// print move
+void print_move(int move){
+    std::cout << square_to_coordinates[get_move_source(move)] <<  square_to_coordinates[get_move_target(move)]  << promoted_pieces[get_move_promoted(move)] ;
+}
+
+// print move list
+void print_move_list(moves *move_list){
+
+    std::cout << "\nmove promoted piece capture double enpassant castling \n";
+
+    for (int move_count = 0; move_count < move_list->count; move_count++){
+        int move = move_list->move[move_count];
+        std::cout << square_to_coordinates[get_move_source(move)] 
+        <<  square_to_coordinates[get_move_target(move)] << "     "  
+        << promoted_pieces[get_move_promoted(move)] << "     "  
+        << unicode_pieces[get_move_piece(move)] << "     "  
+        << (get_move_capture(move) ? 1 : 0) << "        "  
+        << (get_move_double(move) ? 1 : 0  )<< "       "  
+        <<( get_move_enpassant(move) ? 1 : 0 ) << "       "  
+        << (get_move_castling(move) ? 1 : 0 )  << "\n"  ;
+    
+
+    std::cout<< "move count: " <<  move_list->count;
+    }
+    
+}
 
 // generate all possible moves
 void generate_moves(){
@@ -1563,27 +1655,7 @@ void print_attacked_squares(int side){
 
 
 
-// encode move into hexidecimal
 
-#define encode_move(source,target,piece,promoted,capture,double, enpassant, castling) \
-    ( ((source) & 0x3F)               | \
-      (((target) & 0x3F) << 6)        | \
-      (((piece) & 0x0F) << 12)        | \
-      (((promoted) & 0x0F) << 16)     | \
-      ((capture) << 20)               | \
-      ((double) << 21)           | \
-      ((enpassant) << 22)            | \
-      ((castling) << 23) )
-
-
-#define get_move_source(move) (move & 0x3f)
-#define get_move_target(move) ((move & 0xfc0) >> 6)
-#define get_move_piece(move) ((move & 0xfc000) >> 12)
-#define get_move_promoted(move) ((move & 0xfc0000) >> 16)
-#define get_move_capture(move) ((move & 0x100000))
-#define get_move_double(move) ((move & 0x200000))
-#define get_move_enpassant(move) ((move & 0x300000))
-#define get_move_castling(move) ((move & 0x400000))
 
  // MAIN **************
 
@@ -1591,21 +1663,18 @@ int main(){
 
     init_all();
 
-    int move = encode_move(c8, b8, P, 0, 0, 0, 0, 0);
     
-    int source = get_move_source(move);
-    int target = get_move_target(move);
-    int piece = get_move_piece(move);
-    int promoted = get_move_promoted(move);
+
+    moves move_list[1];
+
+    move_list->count = 0;
     
-    std::cout << "source: " << square_to_coordinates[source] << std::endl;
-    std::cout << "target: " << square_to_coordinates[target] << std::endl;
-    std::cout << "piece: " << unicode_pieces[piece] << std::endl;
-    std::cout << "piece: " << unicode_pieces[promoted] << std::endl;
-    std::cout << "capture flag:  " << (get_move_capture(move) ? 1 : 0) << std::endl;
-    std::cout << "double pawn push flag: " << (get_move_double(move) ? 1 : 0) << std::endl;
-    std::cout << "enpassant flag: " << (get_move_enpassant(move) ? 1 : 0) << std::endl;
-    std::cout << "castling flag: " << (get_move_castling(move) ? 1 : 0) << std::endl;
+    add_move(move_list,encode_move(d7, e8, P, Q, 1, 1, 1, 1) ); 
+
+    print_move_list(move_list);
+
+
+    
 
     return 0;
 }
