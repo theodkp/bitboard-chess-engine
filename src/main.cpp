@@ -1158,6 +1158,70 @@ void print_move_list(moves *move_list){
     
 }
 
+
+#define copy_board()                                    \
+    U64 bitboards_copy[12], occupancies_copy[3];       \
+    int side_copy, en_passant_copy, castle_copy;       \
+    memcpy(bitboards_copy, bitboards, 96);             \
+    memcpy(occupancies_copy, occupancies, 24);         \
+    side_copy = side;                                  \
+    en_passant_copy = en_passant;                      \
+    castle_copy = castle;
+
+#define take_back()                                     \
+    memcpy(bitboards, bitboards_copy, 96);             \
+    memcpy(occupancies, occupancies_copy, 24);         \
+    side = side_copy;                                  \
+    en_passant = en_passant_copy;                      \
+    castle = castle_copy;
+
+
+
+enum {all_moves, only_captures};
+
+
+int make_move(int move, int  move_flag){
+
+    // quiet moves
+    if (move_flag == all_moves){
+
+        copy_board();
+
+        // parse move
+        int source = get_move_source(move);
+        int target = get_move_target(move);
+        int piece = get_move_piece(move);
+        int promoted = get_move_promoted(move);
+        int capture = get_move_capture(move);
+        int double_move = get_move_double(move);
+        int en_pass = get_move_enpassant(move);
+        int castling = get_move_castling(move);
+
+        
+        // move piece
+        unset_bit(bitboards[piece],source);
+        set_bit(bitboards[piece],target);
+
+        return 1;
+
+
+    }
+    // capture  moves
+    else{
+            if (get_move_capture(move)){
+                //recursive call
+                make_move(move,all_moves);
+
+                
+            }
+
+            else{
+                return 0 ;
+            }
+    }
+
+}
+
 // generate all possible moves
 void generate_moves(moves *move_list){
 
@@ -1677,15 +1741,27 @@ int main(){
     parse_fen(tricky_position);
     print_board();
 
+
     moves move_list[1];
 
-
     generate_moves(move_list);
-    
-    print_move_list(move_list);
 
 
-    
+    for (int i = 0; i < move_list->count; i++){
+        int move = move_list->move[i];
+
+        copy_board();
+
+        make_move(move,all_moves);
+        print_board();
+        getchar();
+
+        take_back();
+        print_board();
+        getchar();
+
+    }
+
 
     return 0;
 }
