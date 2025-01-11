@@ -615,18 +615,19 @@ U64 mask_pawn_attacks(int side, int square){
     set_bit(bitboard,square);
 
 
-    if (!side){
-
-        /// pawn attacks white
-       if (bitboard & not_h_file) attacks |= bitboard >>7;
-       if (bitboard & not_a_file) attacks |= bitboard >>9;
-
+    if (!side)
+    {
+        // generate pawn attacks
+        if ((bitboard >> 7) & not_a_file) attacks |= (bitboard >> 7);
+        if ((bitboard >> 9) & not_h_file) attacks |= (bitboard >> 9);
     }
-    else{
-        /// pawn attacks black
-        if (bitboard & not_a_file) attacks |= bitboard <<7;
-        if (bitboard & not_h_file) attacks |= bitboard <<9;
-
+    
+    // black pawns
+    else
+    {
+        // generate pawn attacks
+        if ((bitboard << 7) & not_h_file) attacks |= (bitboard << 7);
+        if ((bitboard << 9) & not_a_file) attacks |= (bitboard << 9);    
     }
 
 
@@ -645,16 +646,14 @@ U64 mask_knight_attacks(int square){
     set_bit(bitboard,square);
 
 
-    if (bitboard & not_a_file) attacks |= bitboard >>17;
-    if (bitboard & not_h_file) attacks |= bitboard >>15;
-    if (bitboard & not_ab_file) attacks |= bitboard >>10;
-    if (bitboard & not_hg_file) attacks |= bitboard >>6;
-
-
-    if (bitboard & not_h_file) attacks |= bitboard <<17;
-    if (bitboard & not_a_file) attacks |= bitboard <<15;
-    if (bitboard & not_hg_file) attacks |= bitboard <<10;
-    if (bitboard & not_ab_file) attacks |= bitboard <<6;
+    if ((bitboard >> 17) & not_h_file) attacks |= (bitboard >> 17);
+    if ((bitboard >> 15) & not_a_file) attacks |= (bitboard >> 15);
+    if ((bitboard >> 10) & not_hg_file) attacks |= (bitboard >> 10);
+    if ((bitboard >> 6) & not_ab_file) attacks |= (bitboard >> 6);
+    if ((bitboard << 17) & not_a_file) attacks |= (bitboard << 17);
+    if ((bitboard << 15) & not_h_file) attacks |= (bitboard << 15);
+    if ((bitboard << 10) & not_ab_file) attacks |= (bitboard << 10);
+    if ((bitboard << 6) & not_hg_file) attacks |= (bitboard << 6);
 
 
     return attacks;
@@ -670,15 +669,14 @@ U64 mask_king_attacks(int square){
     set_bit(bitboard,square);
 
 
-    if (bitboard >> 8) attacks |= (bitboard >>8);
-    if (bitboard & not_a_file) attacks |= bitboard >>9;
-    if (bitboard & not_h_file) attacks |= bitboard >>7;
-    if (bitboard & not_a_file) attacks |= bitboard >>1;
-
-    if (bitboard << 8) attacks |= (bitboard <<8);
-    if (bitboard & not_h_file) attacks |= bitboard <<9;
-    if (bitboard & not_a_file) attacks |= bitboard <<7;
-    if (bitboard & not_h_file) attacks |= bitboard <<1;
+    if (bitboard >> 8) attacks |= (bitboard >> 8);
+    if ((bitboard >> 9) & not_h_file) attacks |= (bitboard >> 9);
+    if ((bitboard >> 7) & not_a_file) attacks |= (bitboard >> 7);
+    if ((bitboard >> 1) & not_h_file) attacks |= (bitboard >> 1);
+    if (bitboard << 8) attacks |= (bitboard << 8);
+    if ((bitboard << 9) & not_a_file) attacks |= (bitboard << 9);
+    if ((bitboard << 7) & not_h_file) attacks |= (bitboard << 7);
+    if ((bitboard << 1) & not_a_file) attacks |= (bitboard << 1);
 
 
     return attacks;
@@ -1279,13 +1277,13 @@ int make_move(int move, int  move_flag){
                     break;
                 // black king castle
                 case (g8):
-                    unset_bit(bitboards[R],h8);
-                    set_bit(bitboards[R],f8);
+                    unset_bit(bitboards[r],h8);
+                    set_bit(bitboards[r],f8);
                     break;
                 // black queen castle
                 case (c8):
-                    unset_bit(bitboards[R],a8);
-                    set_bit(bitboards[R],d8);
+                    unset_bit(bitboards[r],a8);
+                    set_bit(bitboards[r],d8);
                     break;
             }
 
@@ -1295,7 +1293,7 @@ int make_move(int move, int  move_flag){
         castle &= castling_rights[source];
         castle &= castling_rights[target];
 
-        // updating shared and coloured bitboards after making moves
+        // updating shared occupancy bitboards (white, black, both) after making moves
         memset(occupancies,0ULL,24);
 
         for (int i = P; i <= K; i++){
@@ -1308,14 +1306,30 @@ int make_move(int move, int  move_flag){
 
         occupancies[both] |= occupancies[white];
         occupancies[both] |= occupancies[black];
-        return 1;
+        
+        // change turns
+        side ^= 1;
+        
+        // king avoiding checks
+        
+        if (is_square_attacked((side == white) ? get_lsf_bit_index(bitboards[k]): get_lsf_bit_index(bitboards[K]),side)){
+
+            take_back();
+
+            return 0;
+
+        }
+        else{
+            return 1;
+        }
+
 
     }
     // capture  moves
     else{
             if (get_move_capture(move)){
-                //recursive call
-                return make_move(move,all_moves);
+                make_move(move,all_moves);
+                return 1;
 
                 
             }
@@ -1843,7 +1857,7 @@ int main(){
 
     init_all();
 
-    parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 ");
+    parse_fen("r3k2r/p1ppRpb1/bn2pnp1/3PN3/1p2P3/2N4p/PPPBBPPP/R3K2R b KQkq - 0 1 ");
     print_board();
 
 
@@ -1857,9 +1871,10 @@ int main(){
 
         copy_board();
 
-        make_move(move,all_moves);
+        if (!make_move(move,all_moves)){
+            continue;
+        }
         print_board();
-        print_bitboard(occupancies[both]);
         getchar();
 
 
