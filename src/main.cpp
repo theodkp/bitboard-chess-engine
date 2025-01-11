@@ -1180,6 +1180,18 @@ void print_move_list(moves *move_list){
 enum {all_moves, only_captures};
 
 
+const int castling_rights[64] = {
+    7, 15, 15, 15,  3, 15, 15, 11,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    13, 15, 15, 15, 12, 15, 15, 14
+};
+
+
 int make_move(int move, int  move_flag){
 
     // quiet moves
@@ -1238,7 +1250,7 @@ int make_move(int move, int  move_flag){
 
         // en passant
         if (en_pass){
-            // remove pawn being taken
+            // remove pawn taken in en passant
             (side == white) ? unset_bit(bitboards[p], target + 8) :
                               unset_bit(bitboards[P], target - 8);
         }
@@ -1246,7 +1258,7 @@ int make_move(int move, int  move_flag){
         en_passant = no_sq;
 
 
-        // if is a double pawn push, we set the en passant square to 1 square behind (depending on colour)
+        // Setting enpassant on double push, we set the en passant square to 1 square behind (depending on colour)
         if (double_move){
             (side == white) ? (en_passant = target + 8) : (en_passant = target - 8);
         }
@@ -1275,13 +1287,13 @@ int make_move(int move, int  move_flag){
                     unset_bit(bitboards[R],a8);
                     set_bit(bitboards[R],d8);
                     break;
-
-                    
-
-
             }
 
         }
+        
+        // updating castling rights
+        castle &= castling_rights[source];
+        castle &= castling_rights[target];
         return 1;
 
     }
