@@ -1291,9 +1291,23 @@ int make_move(int move, int  move_flag){
 
         }
         
-        // updating castling rights
+        // updating castling rights (bitmask)
         castle &= castling_rights[source];
         castle &= castling_rights[target];
+
+        // updating shared and coloured bitboards after making moves
+        memset(occupancies,0ULL,24);
+
+        for (int i = P; i <= K; i++){
+            occupancies[white] |= bitboards[i];
+        }
+
+        for (int i = p; i <= k; i++){
+            occupancies[black] |= bitboards[i];
+        }
+
+        occupancies[both] |= occupancies[white];
+        occupancies[both] |= occupancies[black];
         return 1;
 
     }
@@ -1845,7 +1859,10 @@ int main(){
 
         make_move(move,all_moves);
         print_board();
+        print_bitboard(occupancies[both]);
         getchar();
+
+
 
         take_back();
         print_board();
