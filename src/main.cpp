@@ -28,7 +28,7 @@ enum {
     a4, b4, c4, d4, e4, f4, g4, h4,
     a3, b3, c3, d3, e3, f3, g3, h3,
     a2, b2, c2, d2, e2, f2, g2, h2,
-    a1, b1, c1, d1, e1, f1, g1, h1,no_sq
+    a1, b1, c1, d1, e1, f1, g1, h1, no_sq
 };
 
 // piece colours
@@ -1330,7 +1330,6 @@ int make_move(int move, int  move_flag){
     else{
             if (get_move_capture(move)){
                 make_move(move,all_moves);
-                return 1;
 
                 
             }
@@ -1516,10 +1515,10 @@ void generate_moves(moves *move_list){
                         if (source >= a2 && source <= h2){
 
                             //placeholder for move generator
-                            add_move(move_list, encode_move(source,target,piece,r,1,0,0,0));
-                            add_move(move_list, encode_move(source,target,piece,q,1,0,0,0));
-                            add_move(move_list, encode_move(source,target,piece,n,1,0,0,0));
-                            add_move(move_list, encode_move(source,target,piece,b,1,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,r,0,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,q,0,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,n,0,0,0,0));
+                            add_move(move_list, encode_move(source,target,piece,b,0,0,0,0));
 
                         }
                         // single and double pawn push
@@ -1595,7 +1594,7 @@ void generate_moves(moves *move_list){
                     if (!get_bit(occupancies[both],f8) && !get_bit(occupancies[both],g8)){
                         // make sure king and f8 square not under attack
                         if (!is_square_attacked(e8,white) && !is_square_attacked(f8,white)){
-                            add_move(move_list, encode_move(e8,f8,piece,0,0,0,0,1));
+                            add_move(move_list, encode_move(e8,g8,piece,0,0,0,0,1));
 
                         }
 
@@ -1847,35 +1846,22 @@ void print_attacked_squares(int side){
 
     std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
 }
+long nodes;
 
+//  perfet drivers
 
+void perft_driver(int depth){
 
+    // base case
 
- int get_time_ms()
-{
-    return static_cast<int>(GetTickCount64());
-}
-
-
-
-
-
- // MAIN **************
-
-int main(){
-
-    init_all();
-
-    parse_fen("r3k2r/p1ppRpb1/bn2pnp1/3PN3/1p2P3/2N4p/PPPBBPPP/R3K2R b KQkq - 0 1 ");
-    print_board();
-
+    if (depth == 0){
+        nodes++;
+        return;
+    }
 
     moves move_list[1];
 
     generate_moves(move_list);
-
-    int start = get_time_ms();
-
 
     for (int i = 0; i < move_list->count; i++){
         int move = move_list->move[i];
@@ -1885,18 +1871,46 @@ int main(){
         if (!make_move(move,all_moves)){
             continue;
         }
-        print_board();
-        getchar();
+
+        perft_driver(depth-1);
 
 
 
         take_back();
-        print_board();
-        getchar();
 
     }
 
+}
+
+
+
+int get_time_ms(){
+    return GetTickCount64();
+}
+
+ // MAIN **************
+
+int main(){
+
+    init_all();
+
+    parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
+
+
+
+    
+
+    int start = get_time_ms();
+
+
+    perft_driver(5);
+
+
+    
+
     std::cout << get_time_ms() - start;
+
+    std::cout<< "\n" << nodes;
     
 
     return 0;
