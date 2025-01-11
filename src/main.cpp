@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unordered_map>
-
+#include <windows.h>
+#include <cstdint>
 
 
 // FEN DEBUG POS - format / ranks - turn - castling - enpassant
@@ -1850,6 +1851,14 @@ void print_attacked_squares(int side){
 
 
 
+ int get_time_ms()
+{
+    return static_cast<int>(GetTickCount64());
+}
+
+
+
+
 
  // MAIN **************
 
@@ -1864,6 +1873,8 @@ int main(){
     moves move_list[1];
 
     generate_moves(move_list);
+
+    int start = get_time_ms();
 
 
     for (int i = 0; i < move_list->count; i++){
@@ -1885,6 +1896,8 @@ int main(){
 
     }
 
+    std::cout << get_time_ms() - start;
+    
 
     return 0;
 }
