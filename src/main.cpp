@@ -1126,7 +1126,7 @@ void add_move(moves *move_list, int move){
 
 // print move
 void print_move(int move){
-    std::cout << square_to_coordinates[get_move_source(move)] <<  square_to_coordinates[get_move_target(move)]  << promoted_pieces[get_move_promoted(move)] ;
+    std::cout << square_to_coordinates[get_move_source(move)] <<  square_to_coordinates[get_move_target(move)]  << promoted_pieces[get_move_promoted(move)];
 }
 
 // print move list
@@ -1846,6 +1846,14 @@ void print_attacked_squares(int side){
 
     std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
 }
+
+
+// PERFT ***************************************
+
+int get_time_ms(){
+    return GetTickCount64();
+}
+
 long nodes;
 
 //  perfet drivers
@@ -1883,10 +1891,57 @@ void perft_driver(int depth){
 }
 
 
+// perft 
+void perft_test(int depth){
 
-int get_time_ms(){
-    return GetTickCount64();
+    int start = get_time_ms();
+    std::cout<< "PERFT TEST BEGIN" << "\n";
+
+    
+
+
+    moves move_list[1];
+
+    generate_moves(move_list);
+
+    for (int i = 0; i < move_list->count; i++){
+        int move = move_list->move[i];
+
+        copy_board();
+
+        if (!make_move(move,all_moves)){
+            continue;
+        }
+
+        long cumulative_nodes = nodes;
+
+        
+
+        perft_driver(depth-1);
+
+        long old_nodes = nodes- cumulative_nodes;
+
+
+
+        take_back();
+
+        
+
+
+        // print move 
+        print_move(move_list->move[i]);
+        std::cout << "  " << "cur_nodes: " << old_nodes << "\n";
+
+    }
+    std::cout <<"elapsed time: " <<  get_time_ms() - start << "\n";
+
+    std::cout << "depth: " << depth << "\n";
+    std::cout << "nodes: " << nodes;
+
 }
+
+
+
 
  // MAIN **************
 
@@ -1894,24 +1949,8 @@ int main(){
 
     init_all();
 
-    parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
+    parse_fen(tricky_position);
 
-
-
-    
-
-    int start = get_time_ms();
-
-
-    perft_driver(5);
-
-
-    
-
-    std::cout << get_time_ms() - start;
-
-    std::cout<< "\n" << nodes;
-    
-
+    perft_test(5);
     return 0;
 }
