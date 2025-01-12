@@ -1942,6 +1942,15 @@ void perft_test(int depth){
 }
 
 
+// SEARCH ***************************************
+
+// searches postions for best move
+void search_position(int depth)
+{
+    std::cout<< "bestmove d2d4\n";
+}
+
+
 // UCI ***************************
 
 
@@ -2007,6 +2016,8 @@ int parse_move(const char* move_string){
 }
 
 
+
+
 void parse_position(const char *command)
 {
     command += 9;
@@ -2055,8 +2066,9 @@ void parse_position(const char *command)
             current_char++;
         }
         
-        std::cout<< current_char << "\n";
+       
     }
+    print_board();
 }
 
 
@@ -2077,10 +2089,76 @@ void parse_go(const char *command){
     }
 
 
-    std::cout << depth;
+    search_position(depth);
 
 
 }
+
+
+// main uci loop
+
+void uci_loop()
+{
+    setbuf(stdin, NULL);
+    setbuf(stdout, NULL);
+    
+    char input[2000];
+    
+    std::cout<<"id name Bitboard chess engine\n";
+    std::cout<<("id name bleuehour\n");
+    std::cout<<("uciok\n");
+    
+    while (1){
+        memset(input, 0, sizeof(input));
+        
+        fflush(stdout);
+        
+        if (!fgets(input, 2000, stdin)){
+             continue;
+        }
+           
+        
+        if (input[0] == '\n'){
+            continue;
+
+        }
+        
+        // Uci ready
+        if (strncmp(input, "isready", 7) == 0){
+            printf("readyok\n");
+            continue;
+        }
+        
+        //  sets position
+        else if (strncmp(input, "position", 8) == 0){
+                parse_position(input);
+
+        }
+        
+        // resets to new game
+        else if (strncmp(input, "ucinewgame", 10) == 0){
+            parse_position("position startpos");
+        }
+            
+        // passes move into uci
+        else if (strncmp(input, "go", 2) == 0){
+            parse_go(input);
+        }
+           
+        // exit out of uci loop
+        else if (strncmp(input, "quit", 4) == 0){
+            break;
+        }
+            
+        
+        else if (strncmp(input, "uci", 3) == 0){
+            std::cout<<"id name Bitboard chess engine\n";
+            std::cout<<("id name bleuehour\n");
+            std::cout<<("uciok\n");
+        }
+    }
+}
+
 
 
 
@@ -2092,10 +2170,11 @@ int main(){
     init_all();
 
 
-    parse_fen(tricky_position);
+    uci_loop();
 
 
-    parse_go("j432424");
+
+    
 
     
 
