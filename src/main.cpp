@@ -2013,11 +2013,13 @@ void parse_position(const char *command)
     
     const char *current_char = command;
     
+    // if startpos present in uci string we set to starting board position
     if (strncmp(command, "startpos", 8) == 0){
         parse_fen(start_position);
     }
         
     
+    // if fen is entered 
     else{
         current_char = strstr(command, "fen");
         
@@ -2026,12 +2028,15 @@ void parse_position(const char *command)
             }
             
         else{
+            // avoid whitespace to get to our actual fen string
             current_char += 4;
             
+            // populate board with entered fen string
             parse_fen(current_char);
         }
     }
     
+    /// if moves part of entered uci string continue making moves until done
     current_char = strstr(command, "moves");
     
     if (current_char != NULL){
@@ -2055,6 +2060,29 @@ void parse_position(const char *command)
 }
 
 
+// parse UCI go command
+void parse_go(const char *command){
+
+    int depth = -1;
+
+    const char *current_depth = NULL;
+
+    // handle search depth
+    if(current_depth = strstr(command, "depth")){
+        depth = std::atoi(current_depth + 6);
+    }
+
+    else{
+        depth = 6;
+    }
+
+
+    std::cout << depth;
+
+
+}
+
+
 
 
  // MAIN **************
@@ -2064,8 +2092,10 @@ int main(){
     init_all();
 
 
-    parse_position("position startpos moves e2e4");
-    print_board();
+    parse_fen(tricky_position);
+
+
+    parse_go("j432424");
 
     
 
