@@ -1941,6 +1941,56 @@ void perft_test(int depth){
 
 }
 
+// EVAL ****************************************
+
+int material_score[12] = {
+    100,      // white pawn 
+    300,      // white knight 
+    350,      // white bishop 
+    500,      // white rook 
+   1000,      // white queen 
+  10000,      // white king 
+   -100,      // black pawn 
+   -300,      // black knight 
+   -350,      // black bishop 
+   -500,      // black rook 
+  -1000,      // black queen 
+ -10000,      // black king 
+};
+
+// cumulative score of current board state, 0 would be even, we switch the sign by returning double negative for black
+int evaluate(){
+    int score = 0;
+
+    int piece,square;
+
+    U64 bitboard;
+
+    // loop through all chess pieces
+    for (int bb_piece = P; bb_piece <= k; bb_piece++){
+
+        // each piece bitboard
+        bitboard = bitboards[bb_piece];
+
+        // while piece on board
+        while(bitboard){
+
+            piece = bb_piece;
+            // get square of each piece
+            square = get_lsf_bit_index(bitboard);
+            // add to our cumulative score
+            score+= material_score[piece];
+
+            // unset bit on current piece and move to next if available
+            unset_bit(bitboard,square);
+        }
+    }
+
+    // return final score based on side
+    return (side == white) ? score : -score;
+
+
+}
 
 // SEARCH ***************************************
 
@@ -2169,14 +2219,18 @@ int main(){
 
     init_all();
 
-
-    uci_loop();
-
+    int debug = 1;
 
 
+    if (debug){
+        parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
+        print_board();
+        std::cout<< evaluate();
+    }
     
-
-    
+    else{
+        uci_loop();
+    }
 
     return 0;
 }
