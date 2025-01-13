@@ -2083,20 +2083,83 @@ int evaluate(){
 
 // SEARCH ***************************************
 
-
 int ply;
 
 int best_move;
+
+// Quiescence search
+static inline int quiescence(int alpha, int beta)
+{
+    // get evaluation score
+    int evaluation = evaluate();
+    
+
+    if (evaluation >= beta){
+        return beta;
+    }
+    
+    if (evaluation > alpha){
+        alpha = evaluation;
+    }
+    
+    moves move_list[1];
+    
+    // generate moves
+    generate_moves(move_list);
+    
+    // loop over moves 
+    for (int count = 0; count < move_list->count; count++){
+        copy_board();
+        
+        ply++;
+        
+        // make sure to make only legal moves, only taking captures
+        if (make_move(move_list->moves[count], only_captures) == 0){
+            ply--;
+            
+            continue;
+        }
+
+        // current move score
+        int score = -quiescence(-beta, -alpha);
+        
+        ply--;
+
+        // reset
+        take_back();
+        
+        if (score >= beta){
+            return beta;
+        }
+        
+        // update if better score found
+
+        if (score > alpha){
+            alpha = score;
+            
+        }
+    }
+    
+    return alpha;
+}
+
+
+
 
 static inline int negamax(int alpha, int beta, int depth){
     
     // Base case
     if (depth == 0){
-        return evaluate();
+        return quiescence(alpha,beta);
     }   
         
     
     nodes++;
+
+    // make sure not in check
+    int in_check = is_square_attacked((side == white) ? get_lsf_bit_index(bitboards[K]): get_lsf_bit_index(bitboards[k]), side ^1);
+
+    int legal_moves = 0;
     
     int best_sofar;
     
@@ -2114,6 +2177,9 @@ static inline int negamax(int alpha, int beta, int depth){
         copy_board();
         
         ply++;
+
+
+        
         
         // skip if illegal move
         if (make_move(move_list->moves[count], all_moves) == 0){
@@ -2121,6 +2187,8 @@ static inline int negamax(int alpha, int beta, int depth){
             
             continue;
         }
+
+        legal_moves++;
         
         int score = -negamax(-beta, -alpha, depth - 1);
         
@@ -2147,6 +2215,22 @@ static inline int negamax(int alpha, int beta, int depth){
             }
         }
     }
+    // no legal moves
+    if (legal_moves == 0){
+
+        // checkmate
+
+        if (in_check){
+            // make sure checkmate is in as few moves as possible (+ply) 
+            return -49000 + ply;
+        }
+
+        //stalemate
+        else{
+            // draw
+            return 0;
+        }
+    }
     
     // global best move
     if (old_alpha != alpha){
@@ -2161,10 +2245,17 @@ static inline int negamax(int alpha, int beta, int depth){
 void search_position(int depth)
 {
     int score = negamax(-50000, 50000, depth);
+
+    if (best_move){
+
+        std::cout << "info score cp " << score << " depth " << depth << " nodes " << nodes << std::endl;
+
+        std::cout<<"bestmove ";
+        print_move(best_move);
+        std::cout<<"\n";
+
+    }
     
-    std::cout<<"bestmove ";
-    print_move(best_move);
-    std::cout<<"\n";
 }
 
 
@@ -2375,9 +2466,6 @@ void uci_loop()
         }
     }
 }
-
-
-
 
 
  // MAIN **************
