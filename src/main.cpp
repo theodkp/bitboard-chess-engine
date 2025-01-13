@@ -2055,7 +2055,7 @@ int evaluate(){
             // add to our cumulative score
             score+= material_score[piece];
 
-
+            // scores for positional values based on our piece square tables added to our cumulative sum
             switch (piece){
                 case P: score+= pawn_score[square]; break;
                 case N: score+= knight_score[square]; break;
@@ -2083,10 +2083,88 @@ int evaluate(){
 
 // SEARCH ***************************************
 
+
+int ply;
+
+int best_move;
+
+static inline int negamax(int alpha, int beta, int depth){
+    
+    // Base case
+    if (depth == 0){
+        return evaluate();
+    }   
+        
+    
+    nodes++;
+    
+    int best_sofar;
+    
+    int old_alpha = alpha;
+    
+    moves move_list[1];
+    
+    // generate moves for current board state
+    generate_moves(move_list);
+    
+    
+    // Loop through all generated moves
+    for (int count = 0; count < move_list->count; count++){
+        
+        copy_board();
+        
+        ply++;
+        
+        // skip if illegal move
+        if (make_move(move_list->moves[count], all_moves) == 0){
+            ply--;
+            
+            continue;
+        }
+        
+        int score = -negamax(-beta, -alpha, depth - 1);
+        
+        ply--;
+
+        // restore board after recursion breaks out
+        take_back();
+        
+
+        // beta cutoff
+        if (score >= beta){
+            return beta;
+        }
+        
+        // update if better score found
+        if (score > alpha){
+            alpha = score;
+            
+            // save our cur best move
+
+            if (ply == 0){
+                best_sofar = move_list->moves[count];
+
+            }
+        }
+    }
+    
+    // global best move
+    if (old_alpha != alpha){
+        best_move = best_sofar;
+
+    }
+    
+    return alpha;
+}
+
 // searches postions for best move
 void search_position(int depth)
 {
-    std::cout<< "bestmove d2d4\n";
+    int score = negamax(-50000, 50000, depth);
+    
+    std::cout<<"bestmove ";
+    print_move(best_move);
+    std::cout<<"\n";
 }
 
 
@@ -2308,13 +2386,13 @@ int main(){
 
     init_all();
 
-    int debug = 1;
+    int debug = 0;
 
 
     if (debug){
-        parse_fen("rnbqkbnr/pppppppp/8/8/4P3//PPPP1PPP/RNBQKBNR w KQkq - 0 1 ");
+        parse_fen(start_position);
         print_board();
-        std::cout<< evaluate();
+        search_position(4);
     }
     
     else{
