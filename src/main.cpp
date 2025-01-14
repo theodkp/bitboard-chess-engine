@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unordered_map>
 #include <windows.h>
+#include <algorithm> 
 #include <cstdint>
 
 
@@ -2083,13 +2084,130 @@ int evaluate(){
 
 // SEARCH ***************************************
 
+/*
+                          
+    (Victims) Pawn Knight Bishop   Rook  Queen   King
+  (Attackers)
+        Pawn   105    205    305    405    505    605
+      Knight   104    204    304    404    504    604
+      Bishop   103    203    303    403    503    603
+        Rook   102    202    302    402    502    602
+       Queen   101    201    301    401    501    601
+        King   100    200    300    400    500    600
+
+*/
+
+// most valuable victim, least valuable attacker
+
+// 
+static int mvv_lva[12][12] = {
+105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
+104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
+103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
+102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
+101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
+100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600,
+
+105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
+104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
+103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
+102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
+101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
+100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600
+};
+
 int ply;
 
 int best_move;
 
-// Quiescence search
-static inline int quiescence(int alpha, int beta)
+
+
+
+// score move
+
+int score_move(int move){
+    if (get_move_capture(move)){
+
+        int target_piece = P;
+
+    // depending on side we loop through opposite bitboards
+        int start,end;
+
+        if (side == white){
+            start = p;
+            end = k;
+        }
+        else{
+            start = P;
+            end = K;
+        }
+        // if piece on target square (capture) we remove it from bitboard
+        for (int bb_piece = start; bb_piece <= end; bb_piece++){
+            if (get_bit(bitboards[bb_piece], get_move_target(move))){
+
+                target_piece = bb_piece;
+                break;
+            }
+
+
+
+        
+    }
+        return mvv_lva[get_move_piece(move)][target_piece];
+}
+
+    else{
+        
+    }
+
+    return 0;
+}
+
+// sorting using built in cpp lib (O(n(log(n))))
+struct MoveWithScore {
+    int move;
+    int score;
+};
+
+// helping our alpha beta pruning by feeding it top scoring moves first
+void sort_moves(moves* move_list) {
+    if (move_list->count > 256) {
+        return;
+    }
+
+    MoveWithScore scored_moves[256];
+
+    for (int i = 0; i < move_list->count; ++i) {
+        scored_moves[i].move = move_list->moves[i];
+        scored_moves[i].score = score_move(move_list->moves[i]);
+    }
+
+    std::sort(scored_moves, scored_moves + move_list->count, [](const MoveWithScore& a, const MoveWithScore& b) -> bool {
+        return a.score > b.score; 
+    });
+
+    // Update the original move_list with the sorted moves
+    for (int i = 0; i < move_list->count; ++i) {
+        move_list->moves[i] = scored_moves[i].move;
+    }
+}
+
+
+void print_move_scores(moves *move_list)
 {
+    for (int count = 0; count < move_list->count; count++){
+        std::cout<<"     move:";
+        print_move(move_list->moves[count]);
+        std::cout << "   ";
+        std::cout<<"score: "<< score_move(move_list->moves[count]) << "\n";
+    }
+}
+
+// Quiescence search
+static inline int quiescence(int alpha, int beta){
+
+    nodes++;
+
     // get evaluation score
     int evaluation = evaluate();
     
@@ -2113,14 +2231,14 @@ static inline int quiescence(int alpha, int beta)
         
         ply++;
         
-        // make sure to make only legal moves, only taking captures
+        // make sure to make only legal moves, this time only taking captures
         if (make_move(move_list->moves[count], only_captures) == 0){
             ply--;
             
             continue;
         }
 
-        // current move score
+        // current move score, flips each time
         int score = -quiescence(-beta, -alpha);
         
         ply--;
@@ -2474,13 +2592,22 @@ int main(){
 
     init_all();
 
-    int debug = 0;
+    int debug = 1;
 
 
     if (debug){
-        parse_fen(start_position);
+        parse_fen(tricky_position); en_passant = c6;
         print_board();
-        search_position(4);
+        //search_position(3);
+        
+        // create move list instance
+        moves move_list[1];
+        
+        // generate moves
+        generate_moves(move_list);
+        
+        // print move scores
+        print_move_scores(move_list);
     }
     
     else{
