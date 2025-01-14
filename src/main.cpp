@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <windows.h>
 #include <algorithm> 
-#include <cstdint>
 
 
 // FEN DEBUG POS - format / ranks - turn - castling - enpassant
@@ -2116,6 +2115,14 @@ static int mvv_lva[12][12] = {
 100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600
 };
 
+
+// killer moves [id][ply]
+int killer_moves[2][64];
+
+// history moves [piece][square]
+int history_moves[12][64];
+
+
 int ply;
 
 int best_move;
@@ -2153,10 +2160,27 @@ int score_move(int move){
 
         
     }
-        return mvv_lva[get_move_piece(move)][target_piece];
+        return mvv_lva[get_move_piece(move)][target_piece] + 10000;
 }
 
     else{
+
+        // killer move 1
+        if (killer_moves[0][ply] == move){
+            return 9000;
+        }
+
+        // killer move 2
+
+        else if (killer_moves[1][ply] == move){
+            return 8000;
+        }
+
+        // history move
+
+        else{
+            return history_moves[get_move_piece(move)][get_move_target(move)];
+        }
         
     }
 
@@ -2201,6 +2225,8 @@ void print_move_scores(moves *move_list)
         std::cout << "   ";
         std::cout<<"score: "<< score_move(move_list->moves[count]) << "\n";
     }
+
+    std::cout<< "\n";
 }
 
 // Quiescence search
@@ -2224,6 +2250,8 @@ static inline int quiescence(int alpha, int beta){
     
     // generate moves
     generate_moves(move_list);
+
+    sort_moves(move_list);
     
     // loop over moves 
     for (int count = 0; count < move_list->count; count++){
@@ -2277,6 +2305,11 @@ static inline int negamax(int alpha, int beta, int depth){
     // make sure not in check
     int in_check = is_square_attacked((side == white) ? get_lsf_bit_index(bitboards[K]): get_lsf_bit_index(bitboards[k]), side ^1);
 
+
+    if (in_check){
+        depth++;
+    }
+
     int legal_moves = 0;
     
     int best_sofar;
@@ -2287,6 +2320,11 @@ static inline int negamax(int alpha, int beta, int depth){
     
     // generate moves for current board state
     generate_moves(move_list);
+
+
+    sort_moves(move_list);
+
+
     
     
     // Loop through all generated moves
@@ -2318,11 +2356,22 @@ static inline int negamax(int alpha, int beta, int depth){
 
         // beta cutoff
         if (score >= beta){
+            // killer moves
+            if (get_move_capture(move_list->moves[count]) == 0){
+                killer_moves[1][ply] =killer_moves[0][ply];
+                killer_moves[0][ply] = move_list->moves[count];
+
+            }
+            
             return beta;
         }
         
         // update if better score found
         if (score > alpha){
+
+            if (get_move_capture(move_list->moves[count]) == 0){
+            history_moves[get_move_piece(move_list->moves[count])][get_move_target(move_list->moves[count])] += depth;
+            }
             alpha = score;
             
             // save our cur best move
@@ -2596,18 +2645,12 @@ int main(){
 
 
     if (debug){
-        parse_fen(tricky_position); en_passant = c6;
+        parse_fen(tricky_position);
         print_board();
-        //search_position(3);
+        search_position(5);
+
         
-        // create move list instance
-        moves move_list[1];
         
-        // generate moves
-        generate_moves(move_list);
-        
-        // print move scores
-        print_move_scores(move_list);
     }
     
     else{
