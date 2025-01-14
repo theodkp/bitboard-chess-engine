@@ -72,7 +72,7 @@ int castle;
 
 // ASCII pieces
 
-char ascii_pieces[13] = "PNBRQKpnbrqk";
+static char ascii_pieces[12] = { 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k' };
 
 // Unicode pieces
 
@@ -85,7 +85,7 @@ const char* unicode_pieces[12] = {
 // convert ascii characters to constants
 int char_pieces[256];
 
-// Initialize everything to some default value (e.g., -1)
+// Initialize everything to some default value 
 void initCharPieces() {
     for (int i = 0; i < 256; i++)
         char_pieces[i] = -1;
@@ -1026,23 +1026,7 @@ static inline U64 get_queen_attacks(int square, U64 occupancy){
 }
 
 
-// Init all prerequisite functions 
 
-void init_all(){
-    init_leaper_attacks();
-    initCharPieces();
-
-
-    // slider piece attacks
-    init_sliders_attacks(bishop);
-    init_sliders_attacks(rook);
-
-    std::cout << "init all" << "\n";
-    
-
-    
-
-}
 
 // is square attacked?
 
@@ -1081,15 +1065,15 @@ static inline int is_square_attacked(int square, int side){
 
 // encode move into hexidecimal
 
-#define encode_move(source,target,piece,promoted,capture,double, enpassant, castling) \
-    ( ((source) & 0x3F)               | \
-      (((target) & 0x3F) << 6)        | \
-      (((piece) & 0x0F) << 12)        | \
-      (((promoted) & 0x0F) << 16)     | \
-      ((capture) << 20)               | \
-      ((double) << 21)           | \
-      ((enpassant) << 22)            | \
-      ((castling) << 23) )
+#define encode_move(source, target, piece, promoted, capture, double, enpassant, castling) \
+    (source) |          \
+    (target << 6) |     \
+    (piece << 12) |     \
+    (promoted << 16) |  \
+    (capture << 20) |   \
+    (double << 21) |    \
+    (enpassant << 22) | \
+    (castling << 23)    \
 
 // extracting info from decoded move
 #define get_move_source(move) (move & 0x3f)
@@ -1855,7 +1839,7 @@ int get_time_ms(){
     return GetTickCount64();
 }
 
-long nodes;
+long nodes = 0ULL;
 
 //  perfet drivers
 
@@ -2036,9 +2020,10 @@ const int mirror_score[128] = {
 int evaluate(){
     int score = 0;
 
+    U64 bitboard;
     int piece,square;
 
-    U64 bitboard;
+    
 
     // loop through all chess pieces
     for (int bb_piece = P; bb_piece <= k; bb_piece++){
@@ -2100,19 +2085,19 @@ int evaluate(){
 
 // 
 static int mvv_lva[12][12] = {
-105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
-104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
-103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
-102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
-101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
-100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600,
+ 	105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
+	104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
+	103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
+	102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
+	101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
+	100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600,
 
-105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
-104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
-103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
-102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
-101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
-100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600
+	105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
+	104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
+	103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
+	102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
+	101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
+	100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600
 };
 
 
@@ -2121,6 +2106,11 @@ int killer_moves[2][64];
 
 // history moves [piece][square]
 int history_moves[12][64];
+
+// pv length
+int pv_length[64];
+
+int pv_table[64][64];
 
 
 int ply;
@@ -2133,6 +2123,7 @@ int best_move;
 // score move
 
 int score_move(int move){
+    
     if (get_move_capture(move)){
 
         int target_piece = P;
@@ -2255,12 +2246,15 @@ static inline int quiescence(int alpha, int beta){
     
     // loop over moves 
     for (int count = 0; count < move_list->count; count++){
+        
+        
         copy_board();
         
         ply++;
         
         // make sure to make only legal moves, this time only taking captures
         if (make_move(move_list->moves[count], only_captures) == 0){
+            
             ply--;
             
             continue;
@@ -2294,6 +2288,10 @@ static inline int quiescence(int alpha, int beta){
 
 static inline int negamax(int alpha, int beta, int depth){
     
+    // tscp chess engine - tom kerrigan
+
+    pv_length[ply] = ply;
+
     // Base case
     if (depth == 0){
         return quiescence(alpha,beta);
@@ -2312,9 +2310,7 @@ static inline int negamax(int alpha, int beta, int depth){
 
     int legal_moves = 0;
     
-    int best_sofar;
     
-    int old_alpha = alpha;
     
     moves move_list[1];
     
@@ -2372,14 +2368,18 @@ static inline int negamax(int alpha, int beta, int depth){
             if (get_move_capture(move_list->moves[count]) == 0){
             history_moves[get_move_piece(move_list->moves[count])][get_move_target(move_list->moves[count])] += depth;
             }
-            alpha = score;
             
-            // save our cur best move
+            alpha = score;
 
-            if (ply == 0){
-                best_sofar = move_list->moves[count];
 
+            pv_table[ply][ply] = move_list->moves[count];
+
+            for (int next_ply = ply+1; next_ply < pv_length[ply + 1]; next_ply++){
+                pv_table[ply][next_ply] = pv_table[ply + 1][next_ply];
             }
+            
+            // adjust PV length
+            pv_length[ply] = pv_length[ply + 1];          
         }
     }
     // no legal moves
@@ -2399,31 +2399,40 @@ static inline int negamax(int alpha, int beta, int depth){
         }
     }
     
-    // global best move
-    if (old_alpha != alpha){
-        best_move = best_sofar;
-
-    }
     
     return alpha;
 }
 
 // searches postions for best move
-void search_position(int depth)
-{
+void search_position(int depth){
+
+    memset(killer_moves, 0, sizeof(killer_moves));
+    memset(history_moves, 0, sizeof(history_moves));
+    memset(pv_table, 0, sizeof(pv_table));
+    memset(pv_length, 0, sizeof(pv_length));
+    
     int score = negamax(-50000, 50000, depth);
 
-    if (best_move){
 
-        std::cout << "info score cp " << score << " depth " << depth << " nodes " << nodes << std::endl;
+    std::cout << "info score cp " << score 
+              << " depth " << depth 
+              << " nodes " << nodes 
+              << " pv ";
 
-        std::cout<<"bestmove ";
-        print_move(best_move);
-        std::cout<<"\n";
-
+    for (int count = 0; count < pv_length[0]; count++)
+    {
+        print_move(pv_table[0][count]);
+        std::cout << " ";
     }
-    
+
+    std::cout << std::endl;
+
+    std::cout << "bestmove ";
+    print_move(pv_table[0][0]);
+    std::cout << std::endl;
 }
+
+    
 
 
 // UCI ***************************
@@ -2635,18 +2644,33 @@ void uci_loop()
 }
 
 
+// Init all prerequisite functions 
+
+void init_all(){
+    init_leaper_attacks();
+    initCharPieces();
+
+
+    // slider piece attacks
+    init_sliders_attacks(bishop);
+    init_sliders_attacks(rook);    
+
+    
+
+}
+
+
  // MAIN **************
 
 int main(){
 
     init_all();
 
-    int debug = 1;
+    int debug = 0;
 
 
     if (debug){
         parse_fen(tricky_position);
-        print_board();
         search_position(5);
 
         
