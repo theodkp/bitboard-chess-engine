@@ -339,6 +339,48 @@ std::cout << "     Bitboard: " << bitboard;
 
 }
 
+
+
+ 
+// Zobrist keys************************
+ 
+
+
+// random piece keys [piece][square]
+U64 piece_keys[12][64];
+
+// random enpassant keys [square]
+U64 enpassant_keys[64];
+
+U64 castle_keys[16];
+
+U64 side_key;
+
+void init_random_keys(){
+    random_state = 1804289383;
+
+    for (int piece = P; piece <= k; piece++){
+        for (int square = 0; square < 64; square++){
+            piece_keys[piece][square] = get_random_number_U64();
+            std::cout << std::hex << piece_keys[piece][square] << std::endl;
+
+        }
+            
+    }
+    
+    for (int square = 0; square < 64; square++){
+        enpassant_keys[square] = get_random_number_U64();
+    }
+        
+    
+    for (int index = 0; index < 16; index++){
+        castle_keys[index] = get_random_number_U64();
+    }
+        
+        
+    side_key = get_random_number_U64();
+}
+
 // print unicode board
 
 void print_board(){
@@ -2968,7 +3010,7 @@ void init_all(){
     init_sliders_attacks(bishop);
     init_sliders_attacks(rook);    
 
-    
+    init_random_keys();
 
 }
 
@@ -2979,13 +3021,14 @@ int main(){
 
     init_all();
 
-    int debug = 0;
+    int debug = 1;
 
 
     if (debug){
-        parse_fen(tricky_position);
-        search_position(7);
+        // parse_fen(tricky_position);
+        // search_position(7);
 
+        init_random_keys();
         
         
     }
