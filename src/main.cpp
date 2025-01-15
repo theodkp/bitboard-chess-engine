@@ -2112,17 +2112,43 @@ int pv_length[64];
 
 int pv_table[64][64];
 
+int follow_pv, score_pv;
+
+#define max_ply 64
+
+
 
 int ply;
 
-int best_move;
-
+ // pv move scoring
+static inline void enable_pv_scoring(moves *move_list)
+{
+    follow_pv = 0;
+    
+    for (int count = 0; count < move_list->count; count++){
+        if (pv_table[0][ply] == move_list->moves[count]){
+            score_pv = 1;
+            
+            follow_pv = 1;
+        }
+    }
+}
 
 
 
 // score move
 
 int score_move(int move){
+
+    
+    if(score_pv){
+        if(pv_table[0][ply] == move){
+
+            score_pv = 0;
+            // pv score to the top
+            return 20000;
+        }
+    }
     
     if (get_move_capture(move)){
 
@@ -2146,9 +2172,6 @@ int score_move(int move){
                 target_piece = bb_piece;
                 break;
             }
-
-
-
         
     }
         return mvv_lva[get_move_piece(move)][target_piece] + 10000;
@@ -2285,23 +2308,33 @@ static inline int quiescence(int alpha, int beta){
 
 
 
-
 static inline int negamax(int alpha, int beta, int depth){
+
+    
+    int found_pv = 0;
+
     
     // tscp chess engine - tom kerrigan
 
     pv_length[ply] = ply;
 
+
+
     // Base case
     if (depth == 0){
         return quiescence(alpha,beta);
-    }   
+    }
+
+
+    if (ply > max_ply - 1)
+        return evaluate();   
         
     
     nodes++;
 
     // make sure not in check
     int in_check = is_square_attacked((side == white) ? get_lsf_bit_index(bitboards[K]): get_lsf_bit_index(bitboards[k]), side ^1);
+
 
 
     if (in_check){
@@ -2316,6 +2349,13 @@ static inline int negamax(int alpha, int beta, int depth){
     
     // generate moves for current board state
     generate_moves(move_list);
+
+    // if following pv route
+    if(follow_pv){
+
+        enable_pv_scoring(move_list);
+
+    }
 
 
     sort_moves(move_list);
@@ -2342,7 +2382,24 @@ static inline int negamax(int alpha, int beta, int depth){
 
         legal_moves++;
         
-        int score = -negamax(-beta, -alpha, depth - 1);
+        int score;
+        
+        if (found_pv){
+            
+            score = -negamax(-alpha - 1, -alpha , depth - 1);
+            
+          
+            if ((score > alpha) && (score < beta)){
+                score = -negamax(-beta, -alpha, depth - 1);
+            }
+        
+        }
+                
+        
+        else{
+            // normal ab search
+            score = -negamax(-beta, -alpha, depth - 1);
+        }
         
         ply--;
 
@@ -2370,6 +2427,10 @@ static inline int negamax(int alpha, int beta, int depth){
             }
             
             alpha = score;
+
+            // enable pound_pv flag
+
+            found_pv = 1;
 
 
             pv_table[ply][ply] = move_list->moves[count];
@@ -2406,26 +2467,44 @@ static inline int negamax(int alpha, int beta, int depth){
 // searches postions for best move
 void search_position(int depth){
 
+
+    // reset nodes count on each search
+    nodes = 0;
+
+    // reset follow pv flag
+    follow_pv = 0;
+    score_pv = 0;
+
+    // clear previous memory
     memset(killer_moves, 0, sizeof(killer_moves));
     memset(history_moves, 0, sizeof(history_moves));
     memset(pv_table, 0, sizeof(pv_table));
     memset(pv_length, 0, sizeof(pv_length));
-    
-    int score = negamax(-50000, 50000, depth);
+
+    // iterative deepening
+    for (int cur_depth = 1; cur_depth <= depth; cur_depth++){
 
 
-    std::cout << "info score cp " << score 
-              << " depth " << depth 
-              << " nodes " << nodes 
-              << " pv ";
+        follow_pv = 1;
 
-    for (int count = 0; count < pv_length[0]; count++)
-    {
-        print_move(pv_table[0][count]);
-        std::cout << " ";
+
+        int score = negamax(-50000, 50000, cur_depth);
+
+        std::cout << "info score cp " << score 
+                << " depth " << cur_depth 
+                << " nodes " << nodes 
+                << " pv ";
+
+        for (int count = 0; count < pv_length[0]; count++){
+            print_move(pv_table[0][count]);
+            std::cout << " ";
+        }
+
+        std::cout << std::endl;
+        
     }
-
-    std::cout << std::endl;
+    
+    
 
     std::cout << "bestmove ";
     print_move(pv_table[0][0]);
@@ -2666,12 +2745,12 @@ int main(){
 
     init_all();
 
-    int debug = 0;
+    int debug = 1;
 
 
     if (debug){
-        parse_fen(tricky_position);
-        search_position(5);
+        parse_fen(cmk_position);
+        search_position(6);
 
         
         
