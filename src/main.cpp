@@ -2307,6 +2307,8 @@ static inline int quiescence(int alpha, int beta){
 }
 
 
+const int full_depth_moves = 4;
+const int reduction_limit = 3;
 
 static inline int negamax(int alpha, int beta, int depth){
 
@@ -2360,6 +2362,8 @@ static inline int negamax(int alpha, int beta, int depth){
 
     sort_moves(move_list);
 
+    int moves_searched = 0;
+
 
     
     
@@ -2395,10 +2399,34 @@ static inline int negamax(int alpha, int beta, int depth){
         
         }
                 
-        
-        else{
-            // normal ab search
-            score = -negamax(-beta, -alpha, depth - 1);
+        // late move reduction
+        else
+        {
+            if (moves_searched == 0){
+                score = -negamax(-beta, -alpha, depth - 1);
+            }
+                
+            
+            else
+            {
+                if(
+                    moves_searched >= full_depth_moves &&
+                    depth >= reduction_limit &&
+                    in_check == 0 && 
+                    get_move_capture(move_list->moves[count]) == 0 &&
+                    get_move_promoted(move_list->moves[count]) == 0
+                  )
+                    score = -negamax(-alpha - 1, -alpha, depth - 2);
+                
+                else score = alpha + 1;
+                
+                if(score > alpha){
+                    score = -negamax(-alpha - 1, -alpha, depth-1);
+                
+                    if((score > alpha) && (score < beta))
+                        score = -negamax(-beta, -alpha, depth-1);
+                }
+            }
         }
         
         ply--;
@@ -2406,6 +2434,7 @@ static inline int negamax(int alpha, int beta, int depth){
         // restore board after recursion breaks out
         take_back();
         
+        moves_searched++;
 
         // beta cutoff
         if (score >= beta){
@@ -2749,7 +2778,7 @@ int main(){
 
 
     if (debug){
-        parse_fen(cmk_position);
+        parse_fen(tricky_position);
         search_position(6);
 
         
