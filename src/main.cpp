@@ -2311,10 +2311,6 @@ const int full_depth_moves = 4;
 const int reduction_limit = 3;
 
 static inline int negamax(int alpha, int beta, int depth){
-
-    
-    int found_pv = 0;
-
     
     // tscp chess engine - tom kerrigan
 
@@ -2344,6 +2340,23 @@ static inline int negamax(int alpha, int beta, int depth){
     }
 
     int legal_moves = 0;
+
+     if (depth >= 3 && in_check == 0 && ply){
+        copy_board();
+        
+        side ^= 1;
+        
+        en_passant = no_sq;
+        
+        int score = -negamax(-beta, -beta + 1, depth - 1 - 2);
+        
+        take_back();
+        
+        if (score >= beta){
+            return beta;
+        }
+            
+    }
     
     
     
@@ -2388,44 +2401,30 @@ static inline int negamax(int alpha, int beta, int depth){
         
         int score;
         
-        if (found_pv){
-            
-            score = -negamax(-alpha - 1, -alpha , depth - 1);
-            
-          
-            if ((score > alpha) && (score < beta)){
-                score = -negamax(-beta, -alpha, depth - 1);
-            }
-        
+        if (moves_searched == 0){
+            // normal alpha beta search
+            score = -negamax(-beta, -alpha, depth - 1);
         }
-                
-        // late move reduction
-        else
-        {
-            if (moves_searched == 0){
-                score = -negamax(-beta, -alpha, depth - 1);
-            }
-                
+          
             
-            else
-            {
-                if(
-                    moves_searched >= full_depth_moves &&
-                    depth >= reduction_limit &&
-                    in_check == 0 && 
-                    get_move_capture(move_list->moves[count]) == 0 &&
-                    get_move_promoted(move_list->moves[count]) == 0
-                  )
-                    score = -negamax(-alpha - 1, -alpha, depth - 2);
-                
-                else score = alpha + 1;
-                
-                if(score > alpha){
-                    score = -negamax(-alpha - 1, -alpha, depth-1);
-                
-                    if((score > alpha) && (score < beta))
-                        score = -negamax(-beta, -alpha, depth-1);
-                }
+        // late move reduction    
+        else{
+            if(
+                moves_searched >= full_depth_moves &&
+                depth >= reduction_limit &&
+                in_check == 0 && 
+                get_move_capture(move_list->moves[count]) == 0 &&
+                get_move_promoted(move_list->moves[count]) == 0
+                )
+                score = -negamax(-alpha - 1, -alpha, depth - 2);
+            
+            else score = alpha + 1;
+            
+            if(score > alpha){
+                score = -negamax(-alpha - 1, -alpha, depth-1);
+            
+                if((score > alpha) && (score < beta))
+                    score = -negamax(-beta, -alpha, depth-1);
             }
         }
         
@@ -2458,9 +2457,6 @@ static inline int negamax(int alpha, int beta, int depth){
             alpha = score;
 
             // enable pound_pv flag
-
-            found_pv = 1;
-
 
             pv_table[ply][ply] = move_list->moves[count];
 
@@ -2779,7 +2775,7 @@ int main(){
 
     if (debug){
         parse_fen(tricky_position);
-        search_position(6);
+        search_position(7);
 
         
         
