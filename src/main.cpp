@@ -5,7 +5,11 @@
 #include <string.h>
 #include <unordered_map>
 #include <windows.h>
-#include <algorithm> 
+#include <algorithm>
+#include <io.h>
+#include <cerrno>
+#include <fcntl.h>
+
 
 
 // FEN DEBUG POS - format / ranks - turn - castling - enpassant
@@ -120,6 +124,116 @@ char promoted_pieces[12] =
     'q',
     '\0',
 };
+
+// TIME*******************************
+// Credit - Firefather - code monkey king - bluefever software
+
+int is_quit = 0;
+int moves_to_go = 30;
+int move_time = -1;
+int base_time = -1;
+int increment = 0;
+int start_time = 0;
+int stop_time = 0;
+int is_time_set = 0;
+int is_stopped = 0;
+
+int get_time_ms() {
+	return GetTickCount64();
+
+}
+
+
+int input_waiting() {
+
+	static int pipe;
+	static HANDLE inh;
+	DWORD dw;
+
+	if (static int init = 0; !init) {
+		init = 1;
+		inh = GetStdHandle(STD_INPUT_HANDLE);
+		pipe = !GetConsoleMode(inh, &dw);
+		if (!pipe) {
+			SetConsoleMode(inh, dw & ~(ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT));
+			FlushConsoleInputBuffer(inh);
+		}
+	}
+
+	if (pipe) {
+		if (!PeekNamedPipe(inh, nullptr, 0, nullptr, &dw, nullptr))
+			return 1;
+		return static_cast<int>(dw);
+	}
+	GetNumberOfConsoleInputEvents(inh, &dw);
+	return dw <= 1 ? 0 : static_cast<int>(dw);
+
+
+}
+
+void read_input() {
+	char input[256] = "";
+
+	if (input_waiting()) {
+		int bytes;
+		is_stopped = 1;
+
+		do {
+			bytes = _read(_fileno(stdin), input, 256);
+		}
+
+		while (bytes < 0);
+
+		if (char* endc = strchr(input, '\n'))
+			*endc = 0;
+
+		if (strlen(input) > 0) {
+			if (!strncmp(input, "quit", 4))
+				is_quit = 1;
+
+			else if (!strncmp(input, "stop", 4))
+				is_quit = 1;
+		}
+	}
+
+    std::cout << "Input: " << input << std::endl;
+}
+
+void reset_time_control() {
+	is_quit = 0;
+	moves_to_go = 30;
+	move_time = -1;
+	base_time = -1;
+	increment = 0;
+	start_time = 0;
+	stop_time = 0;
+	is_time_set = 0;
+	is_stopped = 0;
+}
+
+// A bridge function to interact between search and GUI input
+static void communicate() {
+    long current_time = get_time_ms();
+    if (is_time_set && current_time > stop_time) {
+        is_stopped = true;
+    }
+
+    read_input(); 
+
+    std::cout << "is_stopped: " << is_stopped
+              << ", is_quit: " << is_quit
+              << ", current_time: " << current_time
+              << ", stop_time: " << stop_time
+              << std::endl;
+
+    // Debug output for time difference
+    std::cout << "Difference: " << (stop_time - current_time) << std::endl;
+}
+  
+
+
+
+// RANDOM ****************************
 
 
 
@@ -1835,9 +1949,7 @@ void print_attacked_squares(int side){
 
 // PERFT ***************************************
 
-int get_time_ms(){
-    return GetTickCount64();
-}
+
 
 long nodes = 0ULL;
 
@@ -2246,6 +2358,10 @@ void print_move_scores(moves *move_list)
 // Quiescence search
 static inline int quiescence(int alpha, int beta){
 
+    // every 2047 nodes listen for GUI/user input
+    if ((nodes & 2047) == 0){
+        communicate();
+    }
     nodes++;
 
     // get evaluation score
@@ -2291,6 +2407,11 @@ static inline int quiescence(int alpha, int beta){
         // reset
         take_back();
         
+
+        if(is_stopped == 1){
+            return 0;
+        }
+        
         if (score >= beta){
             return beta;
         }
@@ -2311,6 +2432,10 @@ const int full_depth_moves = 4;
 const int reduction_limit = 3;
 
 static inline int negamax(int alpha, int beta, int depth){
+
+    if ((nodes & 2047) == 0){
+        communicate();
+    }
     
     // tscp chess engine - tom kerrigan
 
@@ -2351,6 +2476,10 @@ static inline int negamax(int alpha, int beta, int depth){
         int score = -negamax(-beta, -beta + 1, depth - 1 - 2);
         
         take_back();
+        // if time is up stop calculating
+        if(is_stopped == 1 ){
+            return 0;
+        }
         
         if (score >= beta){
             return beta;
@@ -2433,6 +2562,10 @@ static inline int negamax(int alpha, int beta, int depth){
         // restore board after recursion breaks out
         take_back();
         
+        if(is_stopped  == 1){
+            return 0;
+        }
+
         moves_searched++;
 
         // beta cutoff
@@ -2495,10 +2628,13 @@ void search_position(int depth){
 
     // reset nodes count on each search
     nodes = 0;
-
+    
+    is_stopped  = 0;
     // reset follow pv flag
     follow_pv = 0;
     score_pv = 0;
+
+   
 
     // clear previous memory
     memset(killer_moves, 0, sizeof(killer_moves));
@@ -2508,6 +2644,11 @@ void search_position(int depth){
 
     // iterative deepening
     for (int cur_depth = 1; cur_depth <= depth; cur_depth++){
+        
+        // return best move so far if out of time
+        if (is_stopped  == 1){
+            break;
+        }
 
 
         follow_pv = 1;
@@ -2660,27 +2801,95 @@ void parse_position(const char *command)
 }
 
 
-// parse UCI go command
-void parse_go(const char *command){
 
-    int depth = -1;
+void parse_go(char* command)
+{
+	reset_time_control();
 
-    const char *current_depth = NULL;
+	int depth = -1;
+	const char* argument;
 
-    // handle search depth
-    if(current_depth = strstr(command, "depth")){
-        depth = std::atoi(current_depth + 6);
-    }
+	if ((argument = strstr(command, "infinite")))
+	{
+	}
 
-    else{
-        depth = 6;
-    }
+	if ((argument = strstr(command, "binc")) && side == black)
+	{
+		increment = atoi(argument + 5);
+	}
+	if ((argument = strstr(command, "winc")) && side == white)
+	{
+		increment = atoi(argument + 5);
+	}
 
+	if ((argument = strstr(command, "wtime")) && side == white)
+	{
+		base_time = atoi(argument + 6);
+	}
 
-    search_position(depth);
+	if ((argument = strstr(command, "btime")) && side == black)
+	{
+		base_time = atoi(argument + 6);
+	}
 
+	if ((argument = strstr(command, "movestogo")))
+	{
+		moves_to_go = atoi(argument + 10);
+	}
 
+	if ((argument = strstr(command, "movetime")))
+	{
+		move_time = atoi(argument + 9);
+	}
+
+	if ((argument = strstr(command, "depth")))
+	{
+		depth = atoi(argument + 6);
+	}
+
+	if (move_time != -1)
+	{
+		base_time = move_time;
+		moves_to_go = 1;
+	}
+
+	start_time = get_time_ms();
+
+	if (base_time != -1)
+	{
+		is_time_set = 1;
+
+		base_time /= moves_to_go;
+		base_time -= 450;
+
+		if (base_time < 0)
+		{
+			base_time = 0;
+			increment -= 450;
+			if (increment < 0)
+			{
+				increment = 1;
+			}
+		}
+
+		stop_time = start_time + base_time + increment;
+	}
+
+	if (depth == -1)
+	{
+		depth = 64;
+	}
+
+    std::cout << "time:" << base_time 
+              << " start:" << start_time 
+              << " stop:" << stop_time 
+              << " depth:" << depth 
+              << " timeset:" << is_time_set 
+              << std::endl;
+
+	search_position(depth);
 }
+
 
 
 // main uci loop
@@ -2770,7 +2979,7 @@ int main(){
 
     init_all();
 
-    int debug = 1;
+    int debug = 0;
 
 
     if (debug){
