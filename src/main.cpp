@@ -73,6 +73,8 @@ int en_passant = no_sq;
 // castling rights
 int castle;
 
+U64 hash_key;
+
 
 // ASCII pieces
 
@@ -314,6 +316,77 @@ static inline int get_lsf_bit_index(U64 bitboard){
     
 }
 
+// Zobrist keys************************
+ 
+
+
+// random piece keys [piece][square]
+U64 piece_keys[12][64];
+
+// random enpassant keys [square]
+U64 enpassant_keys[64];
+
+U64 castle_keys[16];
+
+U64 side_key;
+
+void init_random_keys(){
+    random_state = 1804289383;
+
+    for (int piece = P; piece <= k; piece++){
+        for (int square = 0; square < 64; square++){
+            piece_keys[piece][square] = get_random_number_U64();
+
+        }
+            
+    }
+    
+    for (int square = 0; square < 64; square++){
+        enpassant_keys[square] = get_random_number_U64();
+    }
+        
+    
+    for (int index = 0; index < 16; index++){
+        castle_keys[index] = get_random_number_U64();
+    }
+        
+        
+    side_key = get_random_number_U64();
+}
+
+// generate hash key
+U64 generate_hash_key()
+{
+    U64 final_key = 0ULL;
+    
+    U64 bitboard;
+    
+    for (int piece = P; piece <= k; piece++){
+        bitboard = bitboards[piece];
+        
+        while (bitboard){
+            int square = get_lsf_bit_index(bitboard);
+            
+            final_key ^= piece_keys[piece][square];
+            
+            unset_bit(bitboard, square);
+        }
+    }
+    
+    if (en_passant != no_sq){
+        final_key ^= enpassant_keys[en_passant];
+
+    }
+    
+    final_key ^= castle_keys[castle];
+    
+    if (side == black) final_key ^= side_key;
+    
+    return final_key;
+}
+
+
+// PRINTING***************************
 // Print bitboard visulisation
 void print_bitboard(U64 bitboard){
 
@@ -337,48 +410,6 @@ for (int rank = 0; rank< 8; rank++){
 std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
 std::cout << "     Bitboard: " << bitboard;
 
-}
-
-
-
- 
-// Zobrist keys************************
- 
-
-
-// random piece keys [piece][square]
-U64 piece_keys[12][64];
-
-// random enpassant keys [square]
-U64 enpassant_keys[64];
-
-U64 castle_keys[16];
-
-U64 side_key;
-
-void init_random_keys(){
-    random_state = 1804289383;
-
-    for (int piece = P; piece <= k; piece++){
-        for (int square = 0; square < 64; square++){
-            piece_keys[piece][square] = get_random_number_U64();
-            std::cout << std::hex << piece_keys[piece][square] << std::endl;
-
-        }
-            
-    }
-    
-    for (int square = 0; square < 64; square++){
-        enpassant_keys[square] = get_random_number_U64();
-    }
-        
-    
-    for (int index = 0; index < 16; index++){
-        castle_keys[index] = get_random_number_U64();
-    }
-        
-        
-    side_key = get_random_number_U64();
 }
 
 // print unicode board
@@ -425,6 +456,7 @@ void print_board(){
           << std::endl;
 
 
+    std::cout << "Hash Key: " << hash_key << "\n";
 
 }
 
@@ -558,6 +590,8 @@ void parse_fen(const char *fen){
     occupancies[both] |= occupancies[black];
     occupancies[both] |= occupancies[white];
 
+    // generate hash key
+    hash_key = generate_hash_key();
 }
 
 
@@ -1305,14 +1339,16 @@ void print_move_list(moves *move_list){
     memcpy(occupancies_copy, occupancies, 24);         \
     side_copy = side;                                  \
     en_passant_copy = en_passant;                      \
-    castle_copy = castle;
+    castle_copy = castle;                   \
+    U64 hash_key_copy = hash_key;   
 
 #define take_back()                                     \
     memcpy(bitboards, bitboards_copy, 96);             \
     memcpy(occupancies, occupancies_copy, 24);         \
     side = side_copy;                                  \
     en_passant = en_passant_copy;                      \
-    castle = castle_copy;
+    castle = castle_copy;                   \
+    hash_key = hash_key_copy;                                  
 
 
 
@@ -1353,6 +1389,10 @@ int make_move(int move, int  move_flag){
         unset_bit(bitboards[piece],source);
         set_bit(bitboards[piece],target);
 
+
+        hash_key ^= piece_keys[piece][source]; 
+        hash_key ^= piece_keys[piece][target];
+
         // capture moves
         if (capture){
 
@@ -1371,6 +1411,8 @@ int make_move(int move, int  move_flag){
             for (int bb_piece = start; bb_piece <= end; bb_piece++){
                 if (get_bit(bitboards[bb_piece], target)){
                     unset_bit(bitboards[bb_piece], target);
+
+                    hash_key ^= piece_keys[bb_piece][target];
                     break;
                 }
 
@@ -1382,24 +1424,55 @@ int make_move(int move, int  move_flag){
 
         // pawn promotions
         if (promoted){
-            unset_bit(bitboards[(side == white) ? P : p ],target);
-            set_bit(bitboards[promoted],target);
-        }
-       
+            if (side == white){
+                unset_bit(bitboards[P],target);
+                hash_key ^= piece_keys[P][target];
+                }
+            
+            else{
+                unset_bit(bitboards[p],target);
+                hash_key ^= piece_keys[p][target];
 
+                }
+
+            set_bit(bitboards[promoted],target);
+
+            hash_key ^= piece_keys[promoted][target];
+
+       
+        }
         // en passant
         if (en_pass){
             // remove pawn taken in en passant
             (side == white) ? unset_bit(bitboards[p], target + 8) :
                               unset_bit(bitboards[P], target - 8);
+
+            if (side == white){
+                unset_bit(bitboards[p], target + 8);
+                hash_key ^= piece_keys[p][target + 8];
+            }
+            else{
+                unset_bit(bitboards[P], target - 8);
+                hash_key ^= piece_keys[P][target - 8];
+            }
         }
+
+        if (en_passant != no_sq) hash_key ^= enpassant_keys[en_passant];
 
         en_passant = no_sq;
 
 
         // Setting enpassant on double push, we set the en passant square to 1 square behind (depending on colour)
         if (double_move){
-            (side == white) ? (en_passant = target + 8) : (en_passant = target - 8);
+            if (side == white){
+                en_passant = target + 8;
+                // update hash key
+                hash_key ^= enpassant_keys[target + 8];
+            }
+            else{
+                en_passant = target - 8;
+                hash_key ^= enpassant_keys[target - 8];
+            }
         }
 
         // CASTLING
@@ -1410,29 +1483,47 @@ int make_move(int move, int  move_flag){
                 case (g1):
                     unset_bit(bitboards[R],h1);
                     set_bit(bitboards[R],f1);
+
+                    // update hash key
+                    hash_key ^= piece_keys[R][h1];
+                    hash_key ^= piece_keys[R][f1];
                     break;
                 // white queen castle
                 case (c1):
                     unset_bit(bitboards[R],a1);
                     set_bit(bitboards[R],d1);
+
+                    hash_key ^= piece_keys[R][a1];
+                    hash_key ^= piece_keys[R][d1];
                     break;
                 // black king castle
                 case (g8):
                     unset_bit(bitboards[r],h8);
                     set_bit(bitboards[r],f8);
+
+                    hash_key ^= piece_keys[r][h8];
+                    hash_key ^= piece_keys[r][f8];
                     break;
                 // black queen castle
                 case (c8):
                     unset_bit(bitboards[r],a8);
                     set_bit(bitboards[r],d8);
+                    
+                    
+                    hash_key ^= piece_keys[r][a8];
+                    hash_key ^= piece_keys[r][d8];
                     break;
             }
 
         }
-        
+        // update castling rights hash key
+        hash_key ^= castle_keys[castle];
+
         // updating castling rights (bitmask)
         castle &= castling_rights[source];
         castle &= castling_rights[target];
+
+        hash_key ^= castle_keys[castle];
 
         // updating shared occupancy bitboards (white, black, both) after making moves
         memset(occupancies,0ULL,24);
@@ -1450,7 +1541,9 @@ int make_move(int move, int  move_flag){
         
         // change turns
         side ^= 1;
-        
+        // update hash key for side to move
+        hash_key ^= side_key;
+
         // king avoiding checks
         
         if (is_square_attacked((side == white) ? get_lsf_bit_index(bitboards[k]): get_lsf_bit_index(bitboards[K]),side)){
@@ -3025,11 +3118,12 @@ int main(){
 
 
     if (debug){
-        // parse_fen(tricky_position);
-        // search_position(7);
-
-        init_random_keys();
         
+        parse_fen(tricky_position);
+        // search_position(7);
+        print_board();
+
+        perft_test(5);
         
     }
     
