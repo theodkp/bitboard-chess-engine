@@ -197,8 +197,6 @@ void read_input() {
 				is_quit = 1;
 		}
 	}
-
-    std::cout << "Input: " << input << std::endl;
 }
 
 void reset_time_control() {
@@ -220,16 +218,7 @@ static void communicate() {
         is_stopped = true;
     }
 
-    read_input(); 
-
-    std::cout << "is_stopped: " << is_stopped
-              << ", is_quit: " << is_quit
-              << ", current_time: " << current_time
-              << ", stop_time: " << stop_time
-              << std::endl;
-
-    // Debug output for time difference
-    std::cout << "Difference: " << (stop_time - current_time) << std::endl;
+    read_input();
 }
   
 
@@ -2363,9 +2352,40 @@ int follow_pv, score_pv;
 
 #define max_ply 64
 
-
-
 int ply;
+
+// transposition tables ****************************************
+
+// hash table size
+#define hash_size 0x400000
+#define no_hash_entry 100000
+
+
+// hash flag
+#define hash_flag_exact 0
+#define hash_flag_alpha 1
+#define hash_flag_beta 2
+
+typedef struct {
+    U64 hash_key;   // hash key
+    int depth;      // search depth
+    int flag;        
+    int score;      
+} tt;              
+
+tt hash_table[hash_size];
+
+// clear transposition table
+void clear_hash_table()
+{
+    for (int index = 0; index < hash_size; index++)
+    {
+        hash_table[index].hash_key = 0;
+        hash_table[index].depth = 0;
+        hash_table[index].flag = 0;
+        hash_table[index].score = 0;
+    }
+}
 
  // pv move scoring
 static inline void enable_pv_scoring(moves *move_list)
@@ -2379,6 +2399,46 @@ static inline void enable_pv_scoring(moves *move_list)
             follow_pv = 1;
         }
     }
+}
+
+// read hash
+static inline int read_hash_entry(int alpha, int beta, int depth)
+{
+    tt *hash_entry = &hash_table[hash_key % hash_size];
+    
+    if (hash_entry->hash_key == hash_key){
+        if (hash_entry->depth >= depth)
+        {
+            if (hash_entry->flag == hash_flag_exact){
+                std::cout<<"exact score: ";
+                return hash_entry->score;
+            }            
+            if ((hash_entry->flag == hash_flag_alpha) && (hash_entry->score <= alpha)){
+                std::cout<<" alpha score: ";
+                return alpha;
+
+            }
+                
+            
+            if ((hash_entry->flag == hash_flag_beta) && (hash_entry->score >= beta)){
+                std::cout<<" beta score: ";
+                return beta;
+            }
+        }
+    }
+    
+    return no_hash_entry;
+}
+
+// write hash 
+static inline void write_hash_entry(int score, int depth, int hash_flag)
+{
+    tt *hash_entry = &hash_table[hash_key % hash_size];
+
+    hash_entry->hash_key = hash_key;
+    hash_entry->score = score;
+    hash_entry->flag = hash_flag;
+    hash_entry->depth = depth;
 }
 
 
@@ -2568,6 +2628,8 @@ const int reduction_limit = 3;
 
 static inline int negamax(int alpha, int beta, int depth){
 
+    int score;
+
     if ((nodes & 2047) == 0){
         communicate();
     }
@@ -2663,7 +2725,6 @@ static inline int negamax(int alpha, int beta, int depth){
 
         legal_moves++;
         
-        int score;
         
         if (moves_searched == 0){
             // normal alpha beta search
@@ -3110,26 +3171,26 @@ void init_all(){
 
  // MAIN **************
 
-int main(){
-
+int main()
+{
+    // init all
     init_all();
 
+    // debug mode variable
     int debug = 1;
-
-
-    if (debug){
+    
+    // if debugging
+    if (debug)
+    {
+        // parse fen
+        parse_fen(start_position);
         
-        parse_fen(tricky_position);
-        // search_position(7);
-        print_board();
-
-        perft_test(5);
+        search_position(7);
         
     }
     
-    else{
+    else
         uci_loop();
-    }
 
     return 0;
 }
