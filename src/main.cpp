@@ -2304,6 +2304,10 @@ int evaluate(){
 
 // SEARCH ***************************************
 
+#define infinity 50000
+#define mate_value 49000
+#define mate_score 48000
+
 /*
                           
     (Victims) Pawn Knight Bishop   Rook  Queen   King
@@ -2407,26 +2411,27 @@ static inline int read_hash_entry(int alpha, int beta, int depth)
     tt *hash_entry = &hash_table[hash_key % hash_size];
     
     if (hash_entry->hash_key == hash_key){
-        if (hash_entry->depth >= depth)
-        {
-            if (hash_entry->flag == hash_flag_exact){
-                std::cout<<"exact score: ";
-                return hash_entry->score;
-            }            
-            if ((hash_entry->flag == hash_flag_alpha) && (hash_entry->score <= alpha)){
-                std::cout<<" alpha score: ";
-                return alpha;
-
-            }
-                
+        if (hash_entry->depth >= depth){
+            int score = hash_entry->score;
             
-            if ((hash_entry->flag == hash_flag_beta) && (hash_entry->score >= beta)){
-                std::cout<<" beta score: ";
+            if (score < -mate_score) score += ply;
+            if (score > mate_score) score -= ply;
+        
+            if (hash_entry->flag == hash_flag_exact){
+                return score;
+            }
+            
+            if ((hash_entry->flag == hash_flag_alpha) && (score <= alpha)){
+                return alpha;
+            }
+            
+            if ((hash_entry->flag == hash_flag_beta) && (score >= beta)){
                 return beta;
             }
         }
     }
     
+    // if hash entry doesn't exist
     return no_hash_entry;
 }
 
@@ -2434,6 +2439,9 @@ static inline int read_hash_entry(int alpha, int beta, int depth)
 static inline void write_hash_entry(int score, int depth, int hash_flag)
 {
     tt *hash_entry = &hash_table[hash_key % hash_size];
+
+    if (score < -mate_score) score -= ply;
+    if (score > mate_score) score += ply;
 
     hash_entry->hash_key = hash_key;
     hash_entry->score = score;
@@ -2559,6 +2567,10 @@ static inline int quiescence(int alpha, int beta){
     }
     nodes++;
 
+    if (ply > max_ply - 1)
+        // evaluate position
+        return evaluate();
+
     // get evaluation score
     int evaluation = evaluate();
     
@@ -2607,14 +2619,16 @@ static inline int quiescence(int alpha, int beta){
             return 0;
         }
         
-        if (score >= beta){
-            return beta;
-        }
+        
         
         // update if better score found
 
         if (score > alpha){
             alpha = score;
+
+            if (score >= beta){
+            return beta;
+            }
             
         }
     }
@@ -2630,14 +2644,27 @@ static inline int negamax(int alpha, int beta, int depth){
 
     int score;
 
+    int hash_flag = hash_flag_alpha;
+    
+    int pv_node = beta - alpha > 1;
+
+    
+
+
+    if (ply && (score = read_hash_entry(alpha, beta, depth)) != no_hash_entry && pv_node == 0){
+        return score;
+     }
+        
+
+
     if ((nodes & 2047) == 0){
         communicate();
     }
     
     // tscp chess engine - tom kerrigan
 
-    pv_length[ply] = ply;
 
+    pv_length[ply] = ply;
 
 
     // Base case
@@ -2665,14 +2692,26 @@ static inline int negamax(int alpha, int beta, int depth){
 
      if (depth >= 3 && in_check == 0 && ply){
         copy_board();
+
+        ply++;
+
+        if (en_passant != no_sq){
+            hash_key ^= enpassant_keys[en_passant];
+        }
         
         side ^= 1;
+
+        hash_key ^= side_key; 
         
         en_passant = no_sq;
         
         int score = -negamax(-beta, -beta + 1, depth - 1 - 2);
+
+
+        ply--;
         
         take_back();
+
         // if time is up stop calculating
         if(is_stopped == 1 ){
             return 0;
@@ -2765,20 +2804,12 @@ static inline int negamax(int alpha, int beta, int depth){
         moves_searched++;
 
         // beta cutoff
-        if (score >= beta){
-            // killer moves
-            if (get_move_capture(move_list->moves[count]) == 0){
-                killer_moves[1][ply] =killer_moves[0][ply];
-                killer_moves[0][ply] = move_list->moves[count];
-
-            }
-            
-            return beta;
-        }
+        
         
         // update if better score found
         if (score > alpha){
 
+            hash_flag = hash_flag_exact;
             if (get_move_capture(move_list->moves[count]) == 0){
             history_moves[get_move_piece(move_list->moves[count])][get_move_target(move_list->moves[count])] += depth;
             }
@@ -2794,7 +2825,19 @@ static inline int negamax(int alpha, int beta, int depth){
             }
             
             // adjust PV length
-            pv_length[ply] = pv_length[ply + 1];          
+            pv_length[ply] = pv_length[ply + 1];
+
+            if (score >= beta){
+                write_hash_entry(score, depth, hash_flag_beta);
+                // killer moves
+                if (get_move_capture(move_list->moves[count]) == 0){
+                    killer_moves[1][ply] =killer_moves[0][ply];
+                    killer_moves[0][ply] = move_list->moves[count];
+
+                }
+            
+                return beta;
+            }          
         }
     }
     // no legal moves
@@ -2804,7 +2847,7 @@ static inline int negamax(int alpha, int beta, int depth){
 
         if (in_check){
             // make sure checkmate is in as few moves as possible (+ply) 
-            return -49000 + ply;
+            return -mate_value + ply;
         }
 
         //stalemate
@@ -2814,12 +2857,14 @@ static inline int negamax(int alpha, int beta, int depth){
         }
     }
     
-    
+    write_hash_entry(alpha, depth, hash_flag);
     return alpha;
 }
 
 // searches postions for best move
 void search_position(int depth){
+
+    int score = 0;
 
 
     // reset nodes count on each search
@@ -2838,6 +2883,11 @@ void search_position(int depth){
     memset(pv_table, 0, sizeof(pv_table));
     memset(pv_length, 0, sizeof(pv_length));
 
+
+    int alpha = -infinity;
+    int beta = infinity;
+    
+
     // iterative deepening
     for (int cur_depth = 1; cur_depth <= depth; cur_depth++){
         
@@ -2850,16 +2900,39 @@ void search_position(int depth){
         follow_pv = 1;
 
 
-        int score = negamax(-50000, 50000, cur_depth);
+        int score = negamax(alpha, beta, cur_depth);
 
-        std::cout << "info score cp " << score 
-                << " depth " << cur_depth 
-                << " nodes " << nodes 
-                << " pv ";
 
-        for (int count = 0; count < pv_length[0]; count++){
+        if ((score <= alpha) || (score >= beta)) {
+            alpha = -infinity;    
+            beta = infinity;      
+            continue;
+        }
+
+        alpha = score - 50;
+        beta = score + 50;
+
+
+        if (score > -mate_value && score < -mate_score){
+                std::cout<< " info score mate " << -(score + mate_value) / 2 - 1 <<  " depth " << cur_depth << " nodes " << nodes << " pv ";
+
+        }
+        
+        else if (score > mate_score && score < mate_value){
+            std::cout<< "info score mate " << (score - mate_value) / 2 + 1 <<  " depth " << cur_depth << " nodes " << nodes << " pv ";
+
+        }
+        
+        else{
+            std::cout<< "info score cp " << score << " depth " << cur_depth << " nodes " << nodes << " pv ";
+        }
+        
+        // loop over the moves within a PV line
+        for (int count = 0; count < pv_length[0]; count++)
+        {
+            // print PV move
             print_move(pv_table[0][count]);
-            std::cout << " ";
+            std::cout <<" ";
         }
 
         std::cout << std::endl;
@@ -3126,10 +3199,14 @@ void uci_loop()
         else if (strncmp(input, "position", 8) == 0){
                 parse_position(input);
 
+                clear_hash_table();
+
         }
         
         // resets to new game
         else if (strncmp(input, "ucinewgame", 10) == 0){
+            // clear hash table mem
+            clear_hash_table();
             parse_position("position startpos");
         }
             
@@ -3165,6 +3242,7 @@ void init_all(){
     init_sliders_attacks(rook);    
 
     init_random_keys();
+    clear_hash_table();
 
 }
 
@@ -3176,16 +3254,13 @@ int main()
     // init all
     init_all();
 
-    // debug mode variable
-    int debug = 1;
+    int debug = 0;
     
-    // if debugging
     if (debug)
     {
-        // parse fen
         parse_fen(start_position);
-        
-        search_position(7);
+        print_board();
+        search_position(10);
         
     }
     
