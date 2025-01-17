@@ -19,6 +19,8 @@
 #define killer_position "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
 #define cmk_position "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
 #define en_passant_test "r3k2r/8/8/2pPN3/Pp6/8/PPPBBPpp/R3K2R b KQkq a3 0 1 "
+#define repetitions "2r3k1/R7/8/1R6/8/8/P4KPP/8 w - - 0 40 "
+
 
 // MACROS ETC
 using U64 = unsigned long long;
@@ -74,6 +76,12 @@ int en_passant = no_sq;
 int castle;
 
 U64 hash_key;
+
+U64 repetition_table[1000];
+
+int repetition_index;
+
+int ply;
 
 
 // ASCII pieces
@@ -265,6 +273,7 @@ U64 gen_magic_number(){
 }
 
 
+#define set_bit(bitboard, square) ((bitboard) |= (1ULL << (square)))
 
 
 // non-zero binary string if bit set otherwise zero
@@ -273,10 +282,7 @@ inline bool get_bit(U64 bitboard, int square) {
 }
 
 
-// bitwise OR will set bit no matter if previously set or unset
-inline void set_bit(U64& bitboard, int square) { 
-    (bitboard) |= (1ULL << square); 
-}
+
 
 // unset bit, will not flip
 inline void unset_bit(U64& bitboard, int square){
@@ -397,7 +403,7 @@ for (int rank = 0; rank< 8; rank++){
 }
 
 std::cout << "\n"<<"   a b c d e f g h" << "\n""\n";
-std::cout << "     Bitboard: " << bitboard;
+std::cout << bitboard;
 
 }
 
@@ -464,6 +470,12 @@ void parse_fen(const char *fen){
     // castling rights init
     castle = 0;
 
+    // reset hash key
+    hash_key = 0ULL;
+
+    repetition_index = 0;
+
+    memset(repetition_table, 0ULL, sizeof(repetition_table));
     // loop through board
     for (int rank = 0; rank < 8; rank++){
         for (int file = 0 ; file < 8; file++){
@@ -1433,8 +1445,6 @@ int make_move(int move, int  move_flag){
         // en passant
         if (en_pass){
             // remove pawn taken in en passant
-            (side == white) ? unset_bit(bitboards[p], target + 8) :
-                              unset_bit(bitboards[P], target - 8);
 
             if (side == white){
                 unset_bit(bitboards[p], target + 8);
@@ -2252,6 +2262,176 @@ const int mirror_score[128] = {
 	a8, b8, c8, d8, e8, f8, g8, h8
 };
 
+
+// file and rank masks
+
+U64 file_masks[64];
+
+U64 rank_masks[64];
+
+U64 isolated_masks[64];
+
+U64 passed_masks[64];
+
+U64 white_passed_masks[64];
+
+U64 black_passed_masks[64];
+
+const int get_rank[64] =
+{
+    7, 7, 7, 7, 7, 7, 7, 7,
+    6, 6, 6, 6, 6, 6, 6, 6,
+    5, 5, 5, 5, 5, 5, 5, 5,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    1, 1, 1, 1, 1, 1, 1, 1,
+	0, 0, 0, 0, 0, 0, 0, 0
+};
+
+// double pawns penalty
+const int double_pawn_penalty = -10;
+
+// isolated pawn penalty
+const int isolated_pawn_penalty = -10;
+
+// passed pawn bonus
+const int passed_pawn_bonus[8] = { 0, 10, 30, 50, 75, 100, 150, 200 }; 
+
+// semi open file score/penalty
+
+const int semi_open_file_score = 10;
+
+const int open_file_score = 15;
+
+const int king_shield_bonus = 5;
+
+
+
+U64 set_file_rank_mask(int file_number, int rank_number)
+{
+    // file or rank mask
+    U64 mask = 0ULL;
+    
+    for (int rank = 0; rank < 8; rank++)
+    {
+        for (int file = 0; file < 8; file++)
+        {
+            int square = rank * 8 + file;
+            
+            if (file_number != -1)
+            {
+                if (file == file_number)
+                    mask |= set_bit(mask, square);
+            }
+            
+            else if (rank_number != -1)
+            {
+                if (rank == rank_number)
+                    mask |= set_bit(mask, square);
+            }
+        }
+    }
+    
+    return mask;
+}
+
+void init_evaluation_masks()
+{
+    /******** Init file masks ********/
+    
+    // loop over ranks
+    for (int rank = 0; rank < 8; rank++)
+    {
+        // loop over files
+        for (int file = 0; file < 8; file++)
+        {
+            // init square
+            int square = rank * 8 + file;
+            
+            // init file mask for a current square
+            file_masks[square] |= set_file_rank_mask(file, -1);
+        }
+    }
+    
+    /******** Init rank masks ********/
+    
+    // loop over ranks
+    for (int rank = 0; rank < 8; rank++)
+    {
+        // loop over files
+        for (int file = 0; file < 8; file++)
+        {
+            // init square
+            int square = rank * 8 + file;
+            
+            // init file mask for a current square
+            rank_masks[square] |= set_file_rank_mask(-1, rank);
+        }
+    }
+    
+    /******** Init isolated masks ********/
+    
+    // loop over ranks
+    for (int rank = 0; rank < 8; rank++)
+    {
+        // loop over files
+        for (int file = 0; file < 8; file++)
+        {
+            // init square
+            int square = rank * 8 + file;
+            
+            // init file mask for a current square
+            isolated_masks[square] |= set_file_rank_mask(file - 1, -1);
+            isolated_masks[square] |= set_file_rank_mask(file + 1, -1);
+        }
+    }
+    
+    /******** White passed masks ********/
+    
+    // loop over ranks
+    for (int rank = 0; rank < 8; rank++)
+    {
+        // loop over files
+        for (int file = 0; file < 8; file++)
+        {
+            // init square
+            int square = rank * 8 + file;
+            
+            // init file mask for a current square
+            white_passed_masks[square] |= set_file_rank_mask(file - 1, -1);
+            white_passed_masks[square] |= set_file_rank_mask(file, -1);
+            white_passed_masks[square] |= set_file_rank_mask(file + 1, -1);
+            
+            // loop over redudant ranks
+            for (int i = 0; i < (8 - rank); i++)
+                // reset redudant bits 
+                white_passed_masks[square] &= ~rank_masks[(7 - i) * 8 + file];
+        }
+    }
+    
+    
+    // loop over ranks
+    for (int rank = 0; rank < 8; rank++)
+    {
+        // loop over files
+        for (int file = 0; file < 8; file++)
+        {
+            // init square
+            int square = rank * 8 + file;
+            
+            // init file mask for a current square
+            black_passed_masks[square] |= set_file_rank_mask(file - 1, -1);
+            black_passed_masks[square] |= set_file_rank_mask(file, -1);
+            black_passed_masks[square] |= set_file_rank_mask(file + 1, -1);
+            
+            for (int i = 0; i < rank + 1; i++)
+                black_passed_masks[square] &= ~rank_masks[i * 8 + file];
+            
+        }
+    }
+}
+
 // cumulative score of current board state, 0 would be even, we switch the sign by returning double negative for black
 int evaluate(){
     int score = 0;
@@ -2259,7 +2439,7 @@ int evaluate(){
     U64 bitboard;
     int piece,square;
 
-    
+    int double_pawns = 0;
 
     // loop through all chess pieces
     for (int bb_piece = P; bb_piece <= k; bb_piece++){
@@ -2278,17 +2458,111 @@ int evaluate(){
 
             // scores for positional values based on our piece square tables added to our cumulative sum
             switch (piece){
-                case P: score+= pawn_score[square]; break;
-                case N: score+= knight_score[square]; break;
-                case R: score+= rook_score[square]; break;
-                case B: score+= bishop_score[square]; break;
-                case K: score+= king_score[square]; break;
+                case Q:
+                    score += count_bits(get_queen_attacks(square, occupancies[both]));
+                    break;
+                case P:
+                    score += pawn_score[square];
+                    
+                    double_pawns = count_bits(bitboards[P] & file_masks[square]);
+                    
+                    if (double_pawns > 1)
+                        score += double_pawns * double_pawn_penalty;
+                    
+                    if ((bitboards[P] & isolated_masks[square]) == 0)
+                        score += isolated_pawn_penalty;
+                    
+                    if ((white_passed_masks[square] & bitboards[p]) == 0)
+                        score += passed_pawn_bonus[get_rank[square]];
 
-                case p: score-= pawn_score[mirror_score[square]]; break;
+                    break;
+                case N: score+= knight_score[square]; break;
+                case R:
+                    // positional score
+                    score += rook_score[square];
+                    
+                    // semi open file
+                    if ((bitboards[P] & file_masks[square]) == 0)
+                        // add semi open file bonus
+                        score += semi_open_file_score;
+                    
+                    // semi open file
+                    if (((bitboards[P] | bitboards[p]) & file_masks[square]) == 0)
+                        // add semi open file bonus
+                        score += open_file_score;
+                    
+                    break;
+                case B: score+= bishop_score[square]; break;
+                case K:
+                    // posirional score
+                    score += king_score[square];
+                    
+                    // semi open file
+                    if ((bitboards[P] & file_masks[square]) == 0)
+                        // add semi open file penalty
+                        score -= semi_open_file_score;
+                    
+                    // semi open file
+                    if (((bitboards[P] | bitboards[p]) & file_masks[square]) == 0)
+                        // add semi open file penalty
+                        score -= open_file_score;
+                    
+                    score += count_bits(king_attacks[square] & occupancies[white]) * king_shield_bonus;
+                    break;
+                // black
+                case q:
+                    // mobility
+                    score -= count_bits(get_queen_attacks(square, occupancies[both]));
+                    break;
+
+                case p:
+                    score -= pawn_score[mirror_score[square]];
+
+                    double_pawns = count_bits(bitboards[p] & file_masks[square]);
+                    
+                    if (double_pawns > 1)
+                        score -= double_pawns * double_pawn_penalty;
+                    
+                    if ((bitboards[p] & isolated_masks[square]) == 0)
+                        score -= isolated_pawn_penalty;
+                    
+                    if ((black_passed_masks[square] & bitboards[P]) == 0)
+                        score -= passed_pawn_bonus[get_rank[mirror_score[square]]];
+
+                    break;
                 case n: score-= knight_score[mirror_score[square]]; break;
-                case r: score-= rook_score[mirror_score[square]]; break;
+                case r:
+                    // positional score
+                    score -= rook_score[mirror_score[square]];
+                    
+                    // semi open file
+                    if ((bitboards[p] & file_masks[square]) == 0)
+                        // add semi open file bonus
+                        score -= semi_open_file_score;
+                    
+                    // semi open file
+                    if (((bitboards[P] | bitboards[p]) & file_masks[square]) == 0)
+                        // add semi open file bonus
+                        score -= open_file_score;
+                    
+                    break;
                 case b: score-= bishop_score[mirror_score[square]]; break;
-                case k: score-= king_score[mirror_score[square]]; break;
+                case k:
+                    // positional score
+                    score -= king_score[mirror_score[square]];
+                    
+                    // semi open file
+                    if ((bitboards[p] & file_masks[square]) == 0)
+                        // add semi open file penalty
+                        score += semi_open_file_score;
+                    
+                    // semi open file
+                    if (((bitboards[P] | bitboards[p]) & file_masks[square]) == 0)
+                        // add semi open file penalty
+                        score += open_file_score;
+                    
+                    score -= count_bits(king_attacks[square] & occupancies[black]) * king_shield_bonus;
+                    break;
             }
 
             // unset bit on current piece and move to next if available
@@ -2356,12 +2630,11 @@ int follow_pv, score_pv;
 
 #define max_ply 64
 
-int ply;
 
 // transposition tables ****************************************
 
 // hash table size
-#define hash_size 0x400000
+#define hash_size 800000
 #define no_hash_entry 100000
 
 
@@ -2558,6 +2831,16 @@ void print_move_scores(moves *move_list)
     std::cout<< "\n";
 }
 
+
+static inline int is_repetition()
+{
+    for (int index = 0; index < repetition_index; index++)
+        if (repetition_table[index] == hash_key)
+            return 1;
+    
+    return 0;
+}
+
 // Quiescence search
 static inline int quiescence(int alpha, int beta){
 
@@ -2597,11 +2880,16 @@ static inline int quiescence(int alpha, int beta){
         copy_board();
         
         ply++;
+
+        repetition_index++;
+        repetition_table[repetition_index] = hash_key;
         
         // make sure to make only legal moves, this time only taking captures
         if (make_move(move_list->moves[count], only_captures) == 0){
             
             ply--;
+
+            repetition_index--;
             
             continue;
         }
@@ -2610,6 +2898,8 @@ static inline int quiescence(int alpha, int beta){
         int score = -quiescence(-beta, -alpha);
         
         ply--;
+
+        repetition_index--;
 
         // reset
         take_back();
@@ -2645,6 +2935,9 @@ static inline int negamax(int alpha, int beta, int depth){
     int score;
 
     int hash_flag = hash_flag_alpha;
+
+    if (ply && is_repetition())
+        return 0;
     
     int pv_node = beta - alpha > 1;
 
@@ -2695,6 +2988,9 @@ static inline int negamax(int alpha, int beta, int depth){
 
         ply++;
 
+        repetition_index++;
+        repetition_table[repetition_index] = hash_key;
+
         if (en_passant != no_sq){
             hash_key ^= enpassant_keys[en_passant];
         }
@@ -2709,6 +3005,8 @@ static inline int negamax(int alpha, int beta, int depth){
 
 
         ply--;
+
+        repetition_index--;
         
         take_back();
 
@@ -2753,11 +3051,16 @@ static inline int negamax(int alpha, int beta, int depth){
         ply++;
 
 
+        repetition_index++;
+        repetition_table[repetition_index] = hash_key;
         
         
         // skip if illegal move
         if (make_move(move_list->moves[count], all_moves) == 0){
             ply--;
+
+
+            repetition_index--;
             
             continue;
         }
@@ -2793,6 +3096,8 @@ static inline int negamax(int alpha, int beta, int depth){
         }
         
         ply--;
+
+        repetition_index--;
 
         // restore board after recursion breaks out
         take_back();
@@ -3057,6 +3362,10 @@ void parse_position(const char *command)
             if (move == 0)
                 break;
             
+            repetition_index++;
+
+            repetition_table[repetition_index] = hash_key;
+            
             make_move(move, all_moves);
             
             while (*current_char && *current_char != ' ') current_char++;
@@ -3242,6 +3551,7 @@ void init_all(){
     init_sliders_attacks(rook);    
 
     init_random_keys();
+    init_evaluation_masks();
     clear_hash_table();
 
 }
@@ -3258,9 +3568,12 @@ int main()
     
     if (debug)
     {
-        parse_fen(start_position);
+        parse_fen(tricky_position);
         print_board();
-        search_position(10);
+
+        perft_test(5);
+
+        // search_position(10);
         
     }
     
