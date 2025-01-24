@@ -3,6 +3,8 @@
 #include "search.h"
 #include "movegen.h"
 #include "visual.h"
+#include <stdio.h>
+#include <string.h>
 
 // UCI ***************************
 
@@ -125,7 +127,6 @@ void parse_position(const char *command)
         
        
     }
-    // print_board();
 }
 
 
@@ -230,8 +231,9 @@ void uci_loop()
     char input[2000];
     
     std::cout<<"id name Bitboard chess engine\n";
-    std::cout<<("id name bleuehour\n");
-    std::cout<<("uciok\n");
+    std::cout<<"id author bleuehour\n";
+    
+    std::cout<<"uciok\n";
     
     while (1){
         memset(input, 0, sizeof(input));
@@ -282,8 +284,9 @@ void uci_loop()
         
         else if (strncmp(input, "uci", 3) == 0){
             std::cout<<"id name Bitboard chess engine\n";
-            std::cout<<("id name bleuehour\n");
-            std::cout<<("uciok\n");
+            std::cout<<"id author bleuehour\n";
+
+            std::cout<<"uciok\n";
         }
     }
 }

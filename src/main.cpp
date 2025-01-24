@@ -2,7 +2,12 @@
 #include "search.h"
 #include "uci.h"
 #include "eval.h"
-void init_all(){
+
+
+ // MAIN **************
+
+int main()
+{
     init_leaper_attacks();
     initCharPieces();
 
@@ -13,19 +18,9 @@ void init_all(){
 
     init_random_keys();
     init_evaluation_masks();
+    uci_loop();
     clear_hash_table();
 
-    
-
-}
-
-
- // MAIN **************
-
-int main()
-{
-   init_all();
-   uci_loop();
 
     return 0;
 }
