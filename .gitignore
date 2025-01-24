@@ -1,3 +1,5 @@
 *.exe
 .vscode
 notes.md
+*.o
+/old
