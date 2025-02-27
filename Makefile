@@ -3,15 +3,15 @@ CXXFLAGS := -Wall -Wextra -O3 -march=native -flto -funroll-loops -std=c++17 -I./
 
 SRCDIR   := src
 SOURCES  := $(wildcard $(SRCDIR)/*.cpp)
-OBJECTS  := $(SOURCES:$(SRCDIR)/%.cpp=%.o)
-TARGET   := chess_engine.exe  
+OBJECTS  := $(SOURCES:.cpp=.o)
+TARGET   := $(SRCDIR)/chess_engine.exe
 
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ -flto
 
-%.o: $(SRCDIR)/%.cpp
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:

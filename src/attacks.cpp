@@ -1,3 +1,17 @@
+/*
+ * attacks.cpp - Chess piece attack generation and lookup system
+ * 
+ * This file implements attack pattern generation for all chess pieces using bitboards.
+ * It includes:
+ * - Pre-computed attack tables for "leaper" pieces (pawns, knights, kings)
+ * - Magic bitboard implementation for "slider" pieces (bishops, rooks, queens)
+ * - Attack mask generation and lookup functions for all piece types
+ * - Square attack checking for determining if a square is under attack
+ * 
+ * The magic bitboard technique is used to efficiently compute sliding piece attacks
+ * by using pre-calculated lookup tables and magic number hashing.
+ */
+
 #include <attacks.h>
 #include <bitboard.h>
 

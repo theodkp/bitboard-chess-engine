@@ -1,3 +1,18 @@
+/*
+ * search.cpp - Chess Position Search and Evaluation System
+ * 
+ * This file implements the chess engine's main search functionality:
+ * - Alpha-beta search with various enhancements
+ * - Quiescence search for tactical stability
+ * - Move ordering (PV moves, captures, killer moves, history moves)
+ * - Time management and search control
+ * - Principal Variation (PV) tracking
+ * - Late Move Reduction (LMR) and other search optimizations
+ * 
+ * The search system is the core of the chess engine, responsible for
+ * finding the best moves in any given position.
+ */
+
 #include "search.h"
 #include "utils.h"
 #include "attacks.h"
