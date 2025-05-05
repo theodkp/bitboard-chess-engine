@@ -1,15 +1,4 @@
-/*
- * eval.cpp - Chess Position Evaluation System
- * 
- * This file implements the static evaluation function for chess positions.
- * It includes:
- * - Material scoring for all pieces
- * - Positional scoring using piece-square tables
- * - Pawn structure evaluation (isolated pawns, doubled pawns, passed pawns)
- * - King safety evaluation
- * - Piece mobility scoring
- * - File and rank mask generation for positional evaluation
- */
+
 
 #include "eval.h"
 #include "attacks.h"

@@ -1,15 +1,4 @@
-/*
- * magics.cpp - Magic Bitboard Generation System
- * 
- * This file handles the generation of magic numbers for sliding piece move generation:
- * - Generates magic numbers for bishops and rooks
- * - Implements magic number finding algorithm
- * - Creates perfect hash functions for move lookup tables
- * - Initializes magic number tables for the engine startup
- * 
- * Magic bitboards are used to efficiently compute sliding piece attacks
- * by creating perfect hash functions for move lookup tables.
- */
+
 
 #include "magics.h"
 #include "attacks.h"

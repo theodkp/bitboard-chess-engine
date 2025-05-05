@@ -1,14 +1,3 @@
-/*
- * hash.cpp - Zobrist Hashing and Transposition Table Implementation
- * 
- * This file implements the chess engine's position hashing system, including:
- * - Zobrist hash key generation for board positions
- * - Transposition table for storing previously evaluated positions
- * - Hash key management for pieces, castling rights, en-passant, and side to move
- * - PV (Principal Variation) table handling for best move sequences
- * 
- * The hashing system is crucial for move ordering and avoiding redundant position evaluations.
- */
 
 #include "hash.h"
 #include "search.h"

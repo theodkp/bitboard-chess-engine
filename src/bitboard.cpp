@@ -1,17 +1,3 @@
-/*
- * bitboard.cpp
- * 
- * This file implements the core bitboard representation of the chess board.
- * Bitboards are 64-bit integers where each bit represents a square on the chess board.
- * This file handles:
- *   - Bitboard data structures for pieces and board state
- *   - FEN string parsing to set up the board position
- *   - Position tracking for repetition detection
- *   - Castling rights and en passant state
- * 
- * Bitboards provide an efficient way to represent and manipulate the chess position,
- * enabling fast move generation and position evaluation.
- */
 
 #include <cstdio>
 #include <cstring>

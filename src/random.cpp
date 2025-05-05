@@ -1,15 +1,3 @@
-/*
- * random.cpp - Pseudo-Random Number Generation System
- * 
- * This file implements the random number generation used by the engine:
- * - XORSHIFT32 algorithm for fast random number generation
- * - 32-bit and 64-bit random number generation
- * - Used primarily for generating Zobrist hash keys
- * - Provides deterministic randomness for reproducible results
- * 
- * The random number generator is essential for creating unique position
- * hash keys and magic numbers for the magic bitboard system.
- */
 
 #include "random.h"
 #include "global.h"

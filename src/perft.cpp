@@ -1,15 +1,3 @@
-/*
- * perft.cpp - Performance Testing for Move Generation
- * 
- * This file implements performance testing (perft) functionality:
- * - Validates move generation correctness
- * - Counts number of positions at different depths
- * - Measures move generation speed
- * - Helps debug move generation by comparing node counts
- * 
- * Perft is a crucial debugging tool that ensures the move generator
- * is working correctly by comparing node counts with known correct values.
- */
 
 #include "perft.h"
 

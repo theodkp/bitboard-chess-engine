@@ -1,16 +1,3 @@
-/*
- * uci.cpp - Universal Chess Interface Protocol Implementation
- * 
- * This file implements the UCI protocol for chess engine communication:
- * - Handles UCI protocol commands and responses
- * - Parses incoming position and move commands
- * - Manages communication between GUI and engine
- * - Controls search timing and move output
- * - Processes game state updates and new game commands
- * 
- * The UCI interface allows the engine to communicate with chess GUIs
- * in a standardized way for gameplay and analysis.
- */
 
 #include "uci.h"
 #include "time.h"

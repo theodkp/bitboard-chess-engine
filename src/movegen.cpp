@@ -1,16 +1,4 @@
-/*
- * movegen.cpp - Chess Move Generation and Validation System
- * 
- * This file implements the core move generation functionality:
- * - Legal move generation for all piece types
- * - Move encoding and decoding (source, target, piece, promotion, etc.)
- * - Move making and unmaking with board state management
- * - Special move handling (castling, en-passant, promotions)
- * - Move validation and legality checking
- * 
- * The move generator is a critical component that ensures all chess rules
- * are properly enforced while generating candidate moves for the search.
- */
+
 
 #include "attacks.h"
 #include "global.h"
