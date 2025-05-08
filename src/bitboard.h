@@ -1,21 +1,16 @@
 #pragma once
 
-#include <utils.h>
-#include <iostream>
-#include <stdio.h>
-#include <string.h>
-#include <unordered_map>
-#include <windows.h>
-#include <algorithm>
-#include <io.h>
-#include <cerrno>
-#include <fcntl.h>
+#include <cstdint>
+
+#include <array>     
+  
+#include <string>   
 
 
+enum { P, N, B, R, Q, K, p, n, b, r, q, k };
 
-// MACROS ETC
+enum {wk = 1 , wq = 2 , bk = 4,bq = 8};
 
-// board pos map
 enum {
     a8, b8, c8, d8, e8, f8, g8, h8,
     a7, b7, c7, d7, e7, f7, g7, h7,
@@ -27,51 +22,11 @@ enum {
     a1, b1, c1, d1, e1, f1, g1, h1, no_sq
 };
 
-
-// 4 bit binary string, representing if we can castle kingside/queenside
-enum {wk = 1 , wq = 2 , bk = 4,bq = 8};
-
-// Character rep
-enum { P, N, B, R, Q, K, p, n, b, r, q, k };
-
-// string version board pos map
-static const char *square_to_coordinates[] = {
-    "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
-    "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-    "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
-    "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
-    "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
-    "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
-    "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-    "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"
-};
-
-extern U64 bitboards[12];
-extern U64 occupancies[3];
-extern int side;
-extern int en_passant;
-extern int castle;
-extern U64 hash_key;
-extern U64 repetition_table[1000];
-extern const int castling_rights[64];
-extern int repetition_index;
-extern int ply;
-
-
-// ASCII pieces
-
-// Unicode pieces
-
 static const char* unicode_pieces[12] = {
     "♙", "♘", "♗", "♖",
     "♕", "♔", "♟", "♞",
     "♝", "♜", "♛", "♚"
 };
-
-// convert ascii characters to constants
-extern int char_pieces[256];
-
-// Initialize everything to some default value 
 
 
 static char promoted_pieces[12] =
@@ -90,15 +45,28 @@ static char promoted_pieces[12] =
     '\0',
 };
 
+static const char *square_to_coordinates[] = {
+    "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
+    "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+    "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
+    "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
+    "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
+    "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
+    "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+    "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"
+};
 
-// move list structure
-typedef struct {
-    int moves[256];
 
-    int count;
-
-} moves;
-
+inline constexpr std::array<int,64> castling_rights = {{
+    7, 15,15,15, 3,15,15,11,
+   15,15,15,15,15,15,15,15,
+   15,15,15,15,15,15,15,15,
+   15,15,15,15,15,15,15,15,
+   15,15,15,15,15,15,15,15,
+   15,15,15,15,15,15,15,15,
+   15,15,15,15,15,15,15,15,
+   13,15,15,15,12,15,15,14
+}};
 
 #define encode_move(source, target, piece, promoted, capture, double, enpassant, castling) \
     (source) |          \
@@ -121,25 +89,38 @@ typedef struct {
 #define get_move_castling(move) ((move & 0x800000))
 
 
-#define copy_board()                                    \
-    U64 bitboards_copy[12], occupancies_copy[3];       \
-    int side_copy, en_passant_copy, castle_copy;       \
-    memcpy(bitboards_copy, bitboards, 96);             \
-    memcpy(occupancies_copy, occupancies, 24);         \
-    side_copy = side;                                  \
-    en_passant_copy = en_passant;                      \
-    castle_copy = castle;                   \
-    U64 hash_key_copy = hash_key;   
+class Board {
+public:
+    Board();
+    explicit Board(const char *fen);
 
-#define take_back()                                     \
-    memcpy(bitboards, bitboards_copy, 96);             \
-    memcpy(occupancies, occupancies_copy, 24);         \
-    side = side_copy;                                  \
-    en_passant = en_passant_copy;                      \
-    castle = castle_copy;                   \
-    hash_key = hash_key_copy;                             
+    void parse_fen(const char *fen);
+    void initCharPieces();
+    int is_repetition();
 
 
-void parse_fen(const char *fen);
-void initCharPieces();
-int is_repetition();
+private:
+
+    // piece bitboards
+    std::array<U64, 12> bitboards;
+    // occupancy bitboards
+    std::array<U64, 3>  occupancies;
+
+    enum { white, black, both };
+    int   side;               
+    int   en_passant;          
+    int   castle;     
+    U64   hash_key;
+    std::array<U64, 1000> repetitionTable;
+    int   repetitionIndex;
+    int   ply;
+
+    // lookup table for chars
+    std::array<int, 256> charPieces;
+
+    static U64        generateHashKey(const Board&);
+
+    void clear();
+    void updateOccupancies();
+
+};

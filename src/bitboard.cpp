@@ -2,88 +2,57 @@
 #include <cstdio>
 #include <cstring>
 #include "search.h"
+#include "utils.h"
 
+Board::Board() {
+    clear();
+    initCharPieces();
+}
 
-
-// define piece bitboards (ie black knights)
-U64 bitboards[12];
-
-// define occupancy bitboards (all white pieces, all black pieces, all pieces)
-U64 occupancies[3];
-
-// whos turn
-int side;
-
-// en passant 
-int en_passant = no_sq;
-
-// castling rights
-int castle;
-
-U64 hash_key;
-
-U64 repetition_table[1000];
-
-int repetition_index;
-
-int ply;
-
-const int castling_rights[64] = {
-    7, 15, 15, 15,  3, 15, 15, 11,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    13, 15, 15, 15, 12, 15, 15, 14
-};
-
-
-
-int char_pieces[256];
-
-void initCharPieces() {
-    for (int i = 0; i < 256; i++)
-        char_pieces[i] = -1;
-    
-    // Now do specific assignments
-    char_pieces['P'] = P;
-    char_pieces['N'] = N;
-    char_pieces['B'] = B;
-    char_pieces['R'] = R;
-    char_pieces['Q'] = Q;
-    char_pieces['K'] = K;
-    char_pieces['p'] = p;
-    char_pieces['n'] = n;
-    char_pieces['b'] = b;
-    char_pieces['r'] = r;
-    char_pieces['q'] = q;
-    char_pieces['k'] = k;
+Board::Board(const char *fen) {
+    clear();
+    initCharPieces();
+    parse_fen(fen);
 }
 
 
+void Board::initCharPieces() {
+    for (int i = 0; i < 256; i++)
+        charPieces[i] = -1;
+    
+    // Now do specific assignments
+    charPieces['P'] = P;
+    charPieces['N'] = N;
+    charPieces['B'] = B;
+    charPieces['R'] = R;
+    charPieces['Q'] = Q;
+    charPieces['K'] = K;
+    charPieces['p'] = p;
+    charPieces['n'] = n;
+    charPieces['b'] = b;
+    charPieces['r'] = r;
+    charPieces['q'] = q;
+    charPieces['k'] = k;
+}
+
+
+void Board::clear() {
+    bitboards        .fill(0);
+    occupancies      .fill(0);
+    repetitionTable  .fill(0);
+    side             = white;
+    en_passant        = no_sq;
+    castle     = 0;
+    hash_key          = 0ULL;
+    repetitionIndex  = 0;
+    ply              = 0;
+}
+
+
+
 // Input Fen String Output board position
-void parse_fen(const char *fen){
-    // reset board to default positions
-    // default boards
-    memset(bitboards, 0ULL, sizeof(bitboards));
-    // side occupancy boards (white, black , all)
-    memset(occupancies,0ULL, sizeof(occupancies));
-    // init side white
-    side = 0;
-
-    // en passant init
-    en_passant = no_sq;
-    // castling rights init
-    castle = 0;
-
-    // reset hash key
-    hash_key = 0ULL;
-
-    repetition_index = 0;
-
-    memset(repetition_table, 0ULL, sizeof(repetition_table));
+void Board::parse_fen(const char *fen){
+    clear();
     // loop through board
     for (int rank = 0; rank < 8; rank++){
         for (int file = 0 ; file < 8; file++){
@@ -94,7 +63,7 @@ void parse_fen(const char *fen){
             if ((*fen >= 'a' && *fen <= 'z') || (*fen >= 'A' && *fen <= 'Z') ){
                 
                 // convert piece from fen to char piece, ie 'p' - > P
-                int piece = char_pieces[*fen];
+                int piece = charPieces[*fen];
 
                 // set bit (place piece) on piece bitboard at current square
                 set_bit(bitboards[piece],square);
@@ -204,10 +173,10 @@ void parse_fen(const char *fen){
 }
 
 
-int is_repetition()
+int Board::is_repetition()
 {
-    for (int index = 0; index < repetition_index; index++)
-        if (repetition_table[index] == hash_key)
+    for (int index = 0; index < repetitionIndex; index++)
+        if (repetitionTable[index] == hash_key)
             return 1;
     
     return 0;
