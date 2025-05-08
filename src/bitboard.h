@@ -98,6 +98,9 @@ public:
     void initCharPieces();
     int is_repetition();
 
+    U64 bitboard(int piece) const    { return bitboards[piece]; }
+    U64 occupancy(int side)  const   { return occupancies[side]; }
+
 
 private:
 
