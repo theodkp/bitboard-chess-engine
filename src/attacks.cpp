@@ -2,43 +2,10 @@
 
 #include <attacks.h>
 #include <bitboard.h>
-
-U64 pawn_attacks[2][64];
-U64 knight_attacks[64];
-U64 king_attacks[64];
-U64 bishop_masks[64];
-U64 rook_masks[64];
-U64 bishop_attacks[64][512];
-U64 rook_attacks[64][4096];
-
-
-// Count of bits for each position in a bishop attack ray
-const int bishop_relevant_bits[64] = {
-6,5,5,5,5,5,5,6,
-5,5,5,5,5,5,5,5,
-5,5,7,7,7,7,5,5,
-5,5,7,9,9,7,5,5,
-5,5,7,9,9,7,5,5,
-5,5,7,7,7,7,5,5,
-5,5,5,5,5,5,5,5,
-6,5,5,5,5,5,5,6,
-};
-
-
-// Count of bits for each position in a rook attack ray
-const int rook_relevant_bits[64] = {
-12,11,11,11,11,11,11,12,
-11,10,10,10,10,10,10,11,
-11,10,10,10,10,10,10,11,
-11,10,10,10,10,10,10,11,
-11,10,10,10,10,10,10,11,
-11,10,10,10,10,10,10,11,
-11,10,10,10,10,10,10,11,
-12,11,11,11,11,11,11,12,
-};
+#include "utils.h"
 
 // PAWN ATTACKS
-U64 mask_pawn_attacks(int side, int square){
+U64 Attacks::mask_pawn_attacks(int side, int square){
 
     // result board
     U64 attacks = 0ULL;
@@ -73,7 +40,7 @@ U64 mask_pawn_attacks(int side, int square){
 }
 
 // KNIGHT ATTACKS
-U64 mask_knight_attacks(int square){
+U64 Attacks::mask_knight_attacks(int square){
     U64 attacks = 0ULL;
 
     U64 bitboard = 0ULL;
@@ -96,7 +63,7 @@ U64 mask_knight_attacks(int square){
 
 // KING ATTACKS
 
-U64 mask_king_attacks(int square){
+U64 Attacks::mask_king_attacks(int square){
     U64 attacks = 0ULL;
 
     U64 bitboard = 0ULL;
@@ -244,7 +211,7 @@ U64 gen_rook_attacks(int square,U64 block){
 
 
 // Initialize pre computed attack arrays
-void init_leaper_attacks(){
+void Attacks::init_leaper_attacks(){
 
     for (int square = 0; square <64; square++){
         pawn_attacks[white][square] = mask_pawn_attacks(white,square);
@@ -288,7 +255,7 @@ U64 set_occupancy(int index, int bits_in_mask , U64 attack_mask){
 
 // slider piece attack tables
 
-void init_sliders_attacks(int bishop){
+void Attacks::init_sliders_attacks(int bishop){
 
     for (int square = 0 ; square < 64; square++){
         bishop_masks[square] = mask_bishop_attacks(square);
@@ -338,7 +305,7 @@ void init_sliders_attacks(int bishop){
 
 // get bishop attacks 
 
-U64 get_bishop_attacks(int square, U64 occupancy){
+U64 Attacks::get_bishop_attacks(int square, U64 occupancy){
 
     // get bishop attacks for current board layout
     occupancy &= bishop_masks[square];
@@ -352,7 +319,7 @@ U64 get_bishop_attacks(int square, U64 occupancy){
 
 // get rook attacks 
 
-U64 get_rook_attacks(int square, U64 occupancy){
+U64 Attacks::get_rook_attacks(int square, U64 occupancy){
 
     // get rook attacks for current board layout
     occupancy &= rook_masks[square];
@@ -367,7 +334,7 @@ U64 get_rook_attacks(int square, U64 occupancy){
 
 // get queen attacks
 
-U64 get_queen_attacks(int square, U64 occupancy){
+U64 Attacks::get_queen_attacks(int square, U64 occupancy){
 
     // combine bishop and rook attacks, to get queen attacks
 
@@ -395,31 +362,27 @@ U64 get_queen_attacks(int square, U64 occupancy){
 
 }
 
-int is_square_attacked(int square, int side){
-
+int Attacks::is_square_attacked(int square, int side, const Board* board) {
     // LEAPER
     // attacked by pawns
-    if ((side == white) && (pawn_attacks[black][square]) & bitboards[P] )return 1;
-    if ((side == black) && (pawn_attacks[white][square]) & bitboards[p] )return 1;
+    if ((side == white) && (pawn_attacks[black][square] & board->bitboard(P))) return 1;
+    if ((side == black) && (pawn_attacks[white][square] & board->bitboard(p))) return 1;
 
     // attacked by knight
-    if (knight_attacks[square] & ((side == white) ? bitboards[N] : bitboards[n])) return 1;
+    if (knight_attacks[square] & ((side == white) ? board->bitboard(N) : board->bitboard(n))) return 1;
     
     // attacked by king
-    if (king_attacks[square] & ((side == white) ? bitboards[K] : bitboards[k])) return 1;
+    if (king_attacks[square] & ((side == white) ? board->bitboard(K) : board->bitboard(k))) return 1;
 
     // SLIDER - have to make sure no blocking pieces
     // attacked by bishop
-
-    if (get_bishop_attacks(square,occupancies[both]) & ((side == white) ? bitboards[B] : bitboards[b]) ) return 1;
+    if (get_bishop_attacks(square, board->occupancy(both)) & ((side == white) ? board->bitboard(B) : board->bitboard(b))) return 1;
 
     // attacked by rook
-
-    if (get_rook_attacks(square,occupancies[both]) & ((side == white) ? bitboards[R] : bitboards[r]) ) return 1;
+    if (get_rook_attacks(square, board->occupancy(both)) & ((side == white) ? board->bitboard(R): board->bitboard(r))) return 1;
 
     // attacked by queen
-
-    if (get_queen_attacks(square,occupancies[both]) & ((side == white) ? bitboards[Q] : bitboards[q]) ) return 1; 
+    if (get_queen_attacks(square, board->occupancy(both)) & ((side == white) ? board->bitboard(Q) : board->bitboard(q))) return 1; 
         
     return 0;
 }
