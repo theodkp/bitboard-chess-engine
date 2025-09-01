@@ -6,13 +6,19 @@
 #include <stdio.h>
 #include <cstdio>
 #include <cstring>
+#include <random.h>
+
+static GenRandom random_generator;
+
+
+// MAGIC *******************
 
 // generate magic number
-U64 gen_magic_number(){
-    return get_random_number_U64() &  get_random_number_U64() & get_random_number_U64();
+U64 Magics::gen_magic_number(){
+    return random_generator.get_random_number_U64() &  random_generator.get_random_number_U64() & random_generator.get_random_number_U64();
 }
 
-U64 find_magic_number(int square, int relevant_bits, int bishop){
+U64 Magics::find_magic_number(int square, int relevant_bits, int bishop){
     U64 occupancies[4096];  
 
     U64 attacks[4096];
@@ -20,14 +26,14 @@ U64 find_magic_number(int square, int relevant_bits, int bishop){
     U64 used_attacks[4096];
 
 
-    U64 attack_mask = bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square);
+    U64 attack_mask = bishop ? Attacks::mask_bishop_attacks(square) : Attacks::mask_rook_attacks(square);
     
     int occupancy_indices = 1 << relevant_bits;
 
     for (int i = 0 ; i < occupancy_indices; i++){
-        occupancies[i] = set_occupancy(i,relevant_bits,attack_mask);
+        occupancies[i] = Attacks::set_occupancy(i,relevant_bits,attack_mask);
 
-        attacks[i] = bishop ? gen_bishop_attacks(square,occupancies[i]) : gen_rook_attacks(square,occupancies[i]);
+        attacks[i] = bishop ? Attacks::gen_bishop_attacks(square,occupancies[i]) : Attacks::gen_rook_attacks(square,occupancies[i]);
 
 
     } 
@@ -65,16 +71,15 @@ U64 find_magic_number(int square, int relevant_bits, int bishop){
 
     printf("magic number doesnt work");
     return 0ULL;
-};
+}
 
-// MAGIC *******************
 
 
 
 
 // init magic numbers
 
-void init_magic_numbers(){
+void Magics::init_magic_numbers(){
     for (int square = 0; square < 64 ; square++){
         printf("0x%llxULL,\n", find_magic_number(square,rook_relevant_bits[square],rook));
     }
