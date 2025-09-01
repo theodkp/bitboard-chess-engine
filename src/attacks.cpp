@@ -87,7 +87,7 @@ U64 Attacks::mask_king_attacks(int square){
 
 
 // Bishop attacks
-U64 mask_bishop_attacks(int square){
+U64 Attacks::mask_bishop_attacks(int square){
 
     U64 attacks = 0ULL;
 
@@ -106,7 +106,7 @@ U64 mask_bishop_attacks(int square){
 }
 
 // Bishop attacks
-U64 gen_bishop_attacks(int square, U64 block){
+U64 Attacks::gen_bishop_attacks(int square, U64 block){
  // result attacks bitboard
     U64 attacks = 0ULL;
     
@@ -146,7 +146,7 @@ U64 gen_bishop_attacks(int square, U64 block){
     return attacks;
 }
 
-U64 mask_rook_attacks(int square){
+U64 Attacks::mask_rook_attacks(int square){
 
     U64 attacks = 0ULL;
 
@@ -168,7 +168,7 @@ U64 mask_rook_attacks(int square){
 
 }
 
-U64 gen_rook_attacks(int square,U64 block){
+U64 Attacks::gen_rook_attacks(int square,U64 block){
 
     // result attacks bitboard
     U64 attacks = 0ULL;
@@ -230,7 +230,7 @@ void Attacks::init_leaper_attacks(){
 
 
 // magic bitboard
-U64 set_occupancy(int index, int bits_in_mask , U64 attack_mask){
+U64 Attacks::set_occupancy(int index, int bits_in_mask , U64 attack_mask){
 
     U64 occupancy = 0ULL;
 
